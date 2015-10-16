@@ -20,16 +20,16 @@ def check_wu():
   print ('wu_checked')  
   return soup
 
-#soup = check_wu()
+soup = check_wu()
 
-url = 'http://api.wunderground.com/weatherstation/WXCurrentObXML.asp?ID=KCABAKER38'
-soup = bs4.BeautifulSoup(urllib.request.urlopen(url)) 
+#url = 'http://api.wunderground.com/weatherstation/WXCurrentObXML.asp?ID=KCABAKER38'
+#soup = bs4.BeautifulSoup(urllib.request.urlopen(url)) 
 
 observation_time_rfc822 = soup.find('observation_time_rfc822').getText()
 
 if observation_time_rfc822 != obs_time:
-    obs_single['observation_time_rfc822'] = soup.find('observation_time_rfc822').getText()
-    obs_single['full'] = soup.find('full').getText()
+    obs_single['obs_time'] = soup.find('observation_time_rfc822').getText().format(str)
+    obs_single['full'] = soup.find('full').getText().format(str)
     obs_single['neighborhood'] = soup.find('neighborhood').getText()
     obs_single['city'] = soup.find('city').getText()
     obs_single['state'] = soup.find('state').getText()
