@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 sid = 'KCABAKER38'
 resample_int = '2min'
 width = 1/24/60*2 #interval is a day, need to divide by reample int
-p_int = 16
+p_int = 32
 folder = '/Users/areed145/Dropbox/wx_scraper/'
 
 url = 'http://api.wunderground.com/weatherstation/WXCurrentObXML.asp?ID='+sid
@@ -185,10 +185,13 @@ while 2 > 1:
         wind05 = obs_wind05.groupby(['wind_degrees_u'])['wind_degrees'].count().reset_index().rename(columns={'wind_degrees': 'wind05'})
         wind10 = obs_wind10.groupby(['wind_degrees_u'])['wind_degrees'].count().reset_index().rename(columns={'wind_degrees': 'wind10'})
         
-        df = windNA.merge(wind00, on=['wind_degrees_u'], how='outer')\
-                    .merge(wind02, on=['wind_degrees_u'], how='outer')\
-                    .merge(wind05, on=['wind_degrees_u'], how='outer')\
-                    .merge(wind10, on=['wind_degrees_u'], how='outer')
+        df_deg = pd.DataFrame(data = np.linspace(0, 360, p_int, endpoint=False), columns = ['wind_degrees_u'])
+        
+        df = df_deg.merge(windNA, on=['wind_degrees_u'], how='left')\
+                    .merge(wind00, on=['wind_degrees_u'], how='left')\
+                    .merge(wind02, on=['wind_degrees_u'], how='left')\
+                    .merge(wind05, on=['wind_degrees_u'], how='left')\
+                    .merge(wind10, on=['wind_degrees_u'], how='left')
                     
         df = df.fillna(0)
         df = df.sort(columns=['wind_degrees_u'], axis=0, ascending=True)
@@ -203,7 +206,7 @@ while 2 > 1:
                     
         theta = np.linspace(0.0, 2 * np.pi, p_int, endpoint=False)
         width_polar = 2 * np.pi / p_int
-        theta = theta - (width/2)
+        theta = theta - (width_polar/2)
         
         ax = plt.subplot2grid((10,2), (7, 0), colspan=2, rowspan=3, projection="polar")
         #ax = plt.subplot(111, polar=True)
