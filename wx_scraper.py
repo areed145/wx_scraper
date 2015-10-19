@@ -12,17 +12,23 @@ import time
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
-url = 'http://api.wunderground.com/weatherstation/WXCurrentObXML.asp?ID=KCABAKER38'
-folder = '/Users/areed145/Dropbox/wx_scraper/'
+sid = 'KCABAKER38'
 resample_int = '2min'
 width = 1/24/60*2 #interval is a day, need to divide by reample int
 p_int = 16
+folder = '/Users/areed145/Dropbox/wx_scraper/'
 
+url = 'http://api.wunderground.com/weatherstation/WXCurrentObXML.asp?ID='+sid
 last_obs_time = None
 
 while 2 > 1:
     
-    soup = bs4.BeautifulSoup(urllib.request.urlopen(url))
+    try:
+        soup = bs4.BeautifulSoup(urllib.request.urlopen(url))
+    except:
+        print('WU check failed... waiting')
+        time.sleep(15)
+        continue
 
     cur_obs_time = pd.Timestamp(soup.find('observation_time_rfc822').getText()).tz_convert('US/Pacific')
     cur_obs_date = cur_obs_time.strftime('%Y%m%d')
