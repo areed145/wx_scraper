@@ -100,7 +100,7 @@ while 2 > 1:
         plt.close("all")
 
         fig = mpl.pyplot.gcf()
-        fig.set_size_inches(10, 20)
+        fig.set_size_inches(10, 25)
         plt.suptitle(station_id+': '+full+'\n'+cur_obs_date+', Last Observation: '+last_obs_time.strftime('%H:%M:%S'), fontsize=20)
         
         #plt.subplot(7, 1, 1)
