@@ -6,11 +6,13 @@ Created on Thu Oct 15 20:20:13 2015
 """
 
 import pandas as pd
+import numpy as np
 
-obs_comb = pd.read_pickle('/Users/areed145/Dropbox/wx_scraper/obs_data.pk1')
+p_int = 22.5
 
-obs_comb = obs_comb.drop(['temp_c','dewpoint_c','pressure_mb','windchill_c','heat_index_c'], axis = 1)
+df = pd.read_pickle('/Users/areed145/Dropbox/wx_scraper/pickles/pickle_20151018.pk1')
 
-obs_comb['station_id'] = 'KCABAKER38'
+df['wind_degrees_u'] = np.round((df['wind_degrees'] / p_int),0)*p_int
+df.loc[df.wind_degrees_u == 360,'wind_degrees_u'] = 0
 
-obs_comb.to_pickle('/Users/areed145/Dropbox/wx_scraper/obs_data.pk1')
+df.to_pickle('/Users/areed145/Dropbox/wx_scraper/pickles/pickle_20151018.pk1')
