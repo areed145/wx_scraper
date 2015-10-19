@@ -11,6 +11,8 @@ import pandas as pd
 import time
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from cmath import rect, phase
+from math import radians, degrees
 
 sid = 'KCABAKER38'
 resample_int = '2min'
@@ -84,10 +86,27 @@ while 2 > 1:
 
         last_obs_time = cur_obs_time
 
+        def mean_angle(deg):
+            if len(deg) > 2:
+                deg = deg.astype(float)
+                deg_avg = degrees(phase(sum(rect(1, radians(d)) for d in deg)/len(deg)))
+                if deg_avg <0:
+                    deg_avg = 360 + deg_avg
+                return deg_avg
+            return pd.np.nan
+
         #plotting
-        obs_plot_n = df_store.resample(resample_int, how = 'mean')
-        obs_plot = df_store.resample(resample_int, how = 'mean').interpolate()        
-        obs_plot_max = df_store.resample(resample_int, how = 'max').interpolate()
+        obs_plot = df_store.resample(resample_int, how = 'mean').interpolate()
+        try:
+            obs_plot_n = df_store[['heat_index_f','windchill_f']].resample(resample_int, how = 'mean')
+            obs_plot['heat_index_f'] = obs_plot_n['heat_index_f']
+            obs_plot['windchill_f'] = obs_plot_n['windchill_f']
+        except:
+            pass
+        obs_plot_wind = df_store[['wind_degrees']].resample(resample_int, how = mean_angle).interpolate()          
+        obs_plot['wind_degrees'] = obs_plot_wind['wind_degrees']
+        obs_plot_max = df_store[['wind_gust_mph']].resample(resample_int, how = 'max').interpolate()
+        obs_plot['wind_gust_mph'] = obs_plot_max['wind_gust_mph']
         
         obs_plot['wind_degrees_u'] = np.round((obs_plot['wind_degrees'] / (360 / p_int)),0) * (360 / p_int)
         obs_plot.loc[obs_plot.wind_degrees_u == 360,'wind_degrees_u'] = 0        
@@ -97,33 +116,31 @@ while 2 > 1:
         obs_wind05 = obs_plot[(obs_plot.wind_mph > 5) & (obs_plot.wind_mph <= 10)]
         obs_wind10 = obs_plot[obs_plot.wind_mph >= 10]
 
-        obs_gustNA = obs_plot_max[obs_plot_max.wind_gust_mph == 0]
-        obs_gust00 = obs_plot_max[(obs_plot_max.wind_gust_mph > 0) & (obs_plot_max.wind_gust_mph <= 2)]
-        obs_gust02 = obs_plot_max[(obs_plot_max.wind_gust_mph > 2) & (obs_plot_max.wind_gust_mph <= 5)]
-        obs_gust05 = obs_plot_max[(obs_plot_max.wind_gust_mph > 5) & (obs_plot_max.wind_gust_mph <= 10)]
-        obs_gust10 = obs_plot_max[obs_plot_max.wind_gust_mph >= 10]
+        obs_gustNA = obs_plot[obs_plot.wind_gust_mph == 0]
+        obs_gust00 = obs_plot[(obs_plot.wind_gust_mph > 0) & (obs_plot.wind_gust_mph <= 2)]
+        obs_gust02 = obs_plot[(obs_plot.wind_gust_mph > 2) & (obs_plot.wind_gust_mph <= 5)]
+        obs_gust05 = obs_plot[(obs_plot.wind_gust_mph > 5) & (obs_plot.wind_gust_mph <= 10)]
+        obs_gust10 = obs_plot[obs_plot.wind_gust_mph >= 10]
 
         plt.close("all")
 
         fig = mpl.pyplot.gcf()
-        fig.set_size_inches(10, 25)
+        fig.set_size_inches(10, 20)
         plt.suptitle(station_id+': '+full+'\n'+cur_obs_date+', Last Observation: '+last_obs_time.strftime('%H:%M:%S'), fontsize=20)
         
-        #plt.subplot(7, 1, 1)
-        plt.subplot2grid((10,2), (0, 0), colspan=2)
+        plt.subplot2grid((9,2), (0, 0), colspan=2)
         plt.bar(obs_plot.index, obs_plot['cloud_base']/100, width, color='#99CCFF', edgecolor='none')
         plt.ylabel('Min Cloudbase (ft MSL)')
         #plt.ylim([0,100])
         plt.grid(b=True, which='both', color='k',linestyle='-')
 
-        #plt.subplot(7, 1, 2)
-        plt.subplot2grid((10,2), (1, 0), colspan=2)
-        plt.plot(obs_plot.index, obs_plot['temp_f'], color='#3366FF',linestyle='-')
-        plt.plot(obs_plot.index, obs_plot['dewpoint_f'], color='#CCFF33',linestyle='-')
+        plt.subplot2grid((9,2), (1, 0), colspan=2)
+        plt.plot(obs_plot.index, obs_plot['temp_f'], color='#3366FF',linestyle='-', linewidth=3.0)
+        plt.plot(obs_plot.index, obs_plot['dewpoint_f'], color='#CCFF33',linestyle='-', linewidth=3.0)
 
         try:
-            plt.plot(obs_plot_n.index, obs_plot_n['heat_index_f'], color='#FF0066',linestyle='-')
-            plt.plot(obs_plot_n.index, obs_plot_n['wind_chill_f'], color='#00FFCC',linestyle='-')
+            plt.plot(obs_plot.index, obs_plot['heat_index_f'], color='#FF0066',linestyle='-', linewidth=3.0)
+            plt.plot(obs_plot.index, obs_plot['wind_chill_f'], color='#00FFCC',linestyle='-', linewidth=3.0)
         except:
             pass
 
@@ -131,15 +148,13 @@ while 2 > 1:
         #plt.ylim([0,110])
         plt.grid(b=True, which='both', color='k',linestyle='-')
 
-        #plt.subplot(7, 1, 3)
-        plt.subplot2grid((10,2), (2, 0), colspan=2)
-        plt.plot(obs_plot.index, obs_plot['pressure_in'], color='#FF5C33',linestyle='-')
+        plt.subplot2grid((9,2), (2, 0), colspan=2)
+        plt.plot(obs_plot.index, obs_plot['pressure_in'], color='#FF5C33',linestyle='-', linewidth=3.0)
         plt.ylabel('Pres (in)')
         #plt.ylim([29.6,30.6])
         plt.grid(b=True, which='both', color='k',linestyle='-')
 
-        #plt.subplot(7, 1, 4)
-        plt.subplot2grid((10,2), (3, 0), colspan=2)
+        plt.subplot2grid((9,2), (3, 0), colspan=2)
         plt.bar(obs_gustNA.index, obs_gustNA['wind_degrees']-obs_gustNA['wind_degrees']+359, width, edgecolor='none', color='#FFFFFF')
         plt.bar(obs_gust00.index, obs_gust00['wind_degrees']-obs_gust00['wind_degrees']+359, width, edgecolor='none', color='#FFCC00')
         plt.bar(obs_gust02.index, obs_gust02['wind_degrees']-obs_gust02['wind_degrees']+359, width, edgecolor='none', color='#FF9900')
@@ -150,31 +165,27 @@ while 2 > 1:
         plt.bar(obs_wind02.index, obs_wind02['wind_degrees']-obs_wind02['wind_degrees']+250, width, edgecolor='none', color='#FF9900')
         plt.bar(obs_wind05.index, obs_wind05['wind_degrees']-obs_wind05['wind_degrees']+250, width, edgecolor='none', color='#FF0000')
         plt.bar(obs_wind10.index, obs_wind10['wind_degrees']-obs_wind10['wind_degrees']+250, width, edgecolor='none', color='#FF3385')
-        plt.plot(obs_plot.index, obs_plot['wind_degrees'], 'k-', ms=2)
+        plt.plot(obs_plot.index, obs_plot['wind_degrees'], 'b.', ms=7)
         plt.ylabel('Wind Dir (deg)')
         plt.ylim([0,359])
         plt.grid(b=True, which='both', color='k',linestyle='-')        
 
-        #plt.subplot(7, 1, 5)
-        plt.subplot2grid((10,2), (4, 0), colspan=2)
+        plt.subplot2grid((9,2), (4, 0), colspan=2)
         plt.bar(obs_plot.index, obs_plot['solar_radiation']/100, width, color='#FFDB4D', edgecolor='none')
-        plt.bar(obs_plot.index, obs_plot['uv'], width, color='#DB4DB8', edgecolor='none')
+        plt.plot(obs_plot.index, obs_plot['uv'], color='#DB4DB8',linestyle='-', linewidth=3.0)
         plt.ylabel('Solar Rad (w/mm^2) / UV')
         plt.ylim([0,10])
         plt.grid(b=True, which='both', color='k',linestyle='-')
 
-        #plt.subplot(7, 1, 6)
-        plt.subplot2grid((10,2), (5, 0), colspan=2)
+        plt.subplot2grid((9,2), (5, 0), colspan=2)
         plt.bar(obs_plot.index, obs_plot['relative_humidity'], width, color='#256EB8', edgecolor='none')
-        plt.bar(obs_plot.index, 100 - obs_plot['relative_humidity'], width, bottom=obs_plot['relative_humidity'], color='#B2CCFF', edgecolor='none')
         plt.ylabel('Rel Humidity (%)')
         plt.ylim([0,100])
         plt.grid(b=True, which='both', color='k',linestyle='-')
 
-        #plt.subplot(7, 1, 7)
-        plt.subplot2grid((10,2), (6, 0), colspan=2)
+        plt.subplot2grid((9,2), (6, 0), colspan=2)
         plt.bar(obs_plot.index, obs_plot['precip_today_in'], width, color='#335CD6', edgecolor='none')
-        plt.plot(obs_plot.index, obs_plot['precip_1hr_in'], color='#00CCFF',linestyle='-')
+        plt.plot(obs_plot.index, obs_plot['precip_1hr_in'], color='#00CCFF',linestyle='-', linewidth=3.0)
         plt.ylabel('Precip (in)')
         plt.ylim([0,0.5])
         plt.grid(b=True, which='both', color='k',linestyle='-')
@@ -208,8 +219,7 @@ while 2 > 1:
         width_polar = 2 * np.pi / p_int
         theta = theta - (width_polar/2)
         
-        ax = plt.subplot2grid((10,2), (7, 0), colspan=2, rowspan=3, projection="polar")
-        #ax = plt.subplot(111, polar=True)
+        ax = plt.subplot2grid((9,2), (7, 0), colspan=1, rowspan=2, projection="polar")
         bars = ax.bar(theta, df.calm, width=width_polar, color='#8AB8E6', edgecolor='none', bottom=0.0)
         bars = ax.bar(theta, df.wind00, width=width_polar, color='#FFCC00', edgecolor='#FFFFFF', bottom=df.calm)
         bars = ax.bar(theta, df.wind02, width=width_polar, color='#FF9900', edgecolor='#FFFFFF', bottom=df.calm+df.wind00)
