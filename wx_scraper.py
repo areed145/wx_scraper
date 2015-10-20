@@ -17,8 +17,8 @@ from matplotlib.dates import DateFormatter
 import pytz
 
 sid = 'KCABAKER38'
-resample_int = '2min'
-width = 1/24/60*2 #interval is a day, need to divide by reample int
+resample_int = '5min'
+width = 1/24/60*5 #interval is a day, need to divide by reample int
 p_int = 32
 folder = '/Users/areed145/Dropbox/wx_scraper/'
 
@@ -81,6 +81,9 @@ while 2 > 1:
             df['precip_today_in'] = soup.find('precip_today_in').getText()
 
             df = df.convert_objects(convert_numeric=True)
+            
+            df.ix[df.pressure_in < 28, 'pressure_in'] = pd.np.nan
+            
             df['cloud_base'] = (((df['temp_f'] - df['dewpoint_f']) / 4.4) * 1000) + 400
             df['obs_d'] = cur_obs_date
             df_store = df_store.append(df)
@@ -101,28 +104,23 @@ while 2 > 1:
             return pd.np.nan
 
         try:
-            obs_plot = df_store.resample(resample_int, how = 'mean').interpolate()
-            try:
-                obs_plot_n = df_store[['heat_index_f','windchill_f']].resample(resample_int, how = 'mean')
-                obs_plot['heat_index_f'] = obs_plot_n['heat_index_f']
-                obs_plot['windchill_f'] = obs_plot_n['windchill_f']
-            except:
-                pass
-            obs_plot_wind = df_store[['wind_degrees']].resample(resample_int, how = mean_angle).interpolate()
+            obs_plot = df_store.resample(resample_int, how = 'mean')
+            obs_plot_wind = df_store[['wind_degrees']].resample(resample_int, how = mean_angle)
             obs_plot['wind_degrees'] = obs_plot_wind['wind_degrees']
-            obs_plot_max = df_store[['wind_gust_mph']].resample(resample_int, how = 'max').interpolate()
+            obs_plot_max = df_store[['wind_gust_mph']].resample(resample_int, how = 'max')
             obs_plot['wind_gust_mph'] = obs_plot_max['wind_gust_mph']
 
             obs_plot['wind_degrees_u'] = np.round((obs_plot['wind_degrees'] / (360 / p_int)),0) * (360 / p_int)
             obs_plot.loc[obs_plot.wind_degrees_u == 360,'wind_degrees_u'] = 0
             obs_windNA = obs_plot[obs_plot.wind_mph == 0]
-            obs_wind00 = obs_plot[(obs_plot.wind_mph > 0) & (obs_plot.wind_mph <= 2)]
+            obs_wind00 = obs_plot[(obs_plot.wind_mph > 0) & (obs_plot.wind_mph <= 1)]
+            obs_wind01 = obs_plot[(obs_plot.wind_mph > 1) & (obs_plot.wind_mph <= 2)]
             obs_wind02 = obs_plot[(obs_plot.wind_mph > 2) & (obs_plot.wind_mph <= 5)]
             obs_wind05 = obs_plot[(obs_plot.wind_mph > 5) & (obs_plot.wind_mph <= 10)]
             obs_wind10 = obs_plot[obs_plot.wind_mph >= 10]
-
             obs_gustNA = obs_plot[obs_plot.wind_gust_mph == 0]
-            obs_gust00 = obs_plot[(obs_plot.wind_gust_mph > 0) & (obs_plot.wind_gust_mph <= 2)]
+            obs_gust00 = obs_plot[(obs_plot.wind_gust_mph > 0) & (obs_plot.wind_gust_mph <= 1)]
+            obs_gust01 = obs_plot[(obs_plot.wind_gust_mph > 1) & (obs_plot.wind_gust_mph <= 2)]
             obs_gust02 = obs_plot[(obs_plot.wind_gust_mph > 2) & (obs_plot.wind_gust_mph <= 5)]
             obs_gust05 = obs_plot[(obs_plot.wind_gust_mph > 5) & (obs_plot.wind_gust_mph <= 10)]
             obs_gust10 = obs_plot[obs_plot.wind_gust_mph >= 10]
@@ -197,19 +195,22 @@ while 2 > 1:
             ax3.spines['left'].set_visible(False)
             ax3.xaxis.set_ticks_position('none')
             ax3.yaxis.set_ticks_position('none')
-            plt.bar(obs_gustNA.index, obs_gustNA['wind_degrees']-obs_gustNA['wind_degrees']+359, width, edgecolor='none', color='#FFFFFF', alpha=0)
-            plt.bar(obs_gust00.index, obs_gust00['wind_degrees']-obs_gust00['wind_degrees']+359, width, edgecolor='none', color='#FFCC00')
-            plt.bar(obs_gust02.index, obs_gust02['wind_degrees']-obs_gust02['wind_degrees']+359, width, edgecolor='none', color='#FF9900')
-            plt.bar(obs_gust05.index, obs_gust05['wind_degrees']-obs_gust05['wind_degrees']+359, width, edgecolor='none', color='#FF0000')
-            plt.bar(obs_gust10.index, obs_gust10['wind_degrees']-obs_gust10['wind_degrees']+359, width, edgecolor='none', color='#FF3385')
-            plt.bar(obs_windNA.index, obs_windNA['wind_degrees']-obs_windNA['wind_degrees']+250, width, edgecolor='none', color='#FFFFFF', alpha=0)
-            plt.bar(obs_wind00.index, obs_wind00['wind_degrees']-obs_wind00['wind_degrees']+250, width, edgecolor='none', color='#FFCC00')
-            plt.bar(obs_wind02.index, obs_wind02['wind_degrees']-obs_wind02['wind_degrees']+250, width, edgecolor='none', color='#FF9900')
-            plt.bar(obs_wind05.index, obs_wind05['wind_degrees']-obs_wind05['wind_degrees']+250, width, edgecolor='none', color='#FF0000')
-            plt.bar(obs_wind10.index, obs_wind10['wind_degrees']-obs_wind10['wind_degrees']+250, width, edgecolor='none', color='#FF3385')
+            plt.bar(obs_gustNA.index, obs_gustNA['wind_degrees']-obs_gustNA['wind_degrees']-80, width, edgecolor='none', color='#8AB8E6')
+            plt.bar(obs_gust00.index, obs_gust00['wind_degrees']-obs_gust00['wind_degrees']-80, width, edgecolor='none', color='#CCFF33')
+            plt.bar(obs_gust01.index, obs_gust01['wind_degrees']-obs_gust01['wind_degrees']-80, width, edgecolor='none', color='#FFCC00')
+            plt.bar(obs_gust02.index, obs_gust02['wind_degrees']-obs_gust02['wind_degrees']-80, width, edgecolor='none', color='#FF9900')
+            plt.bar(obs_gust05.index, obs_gust05['wind_degrees']-obs_gust05['wind_degrees']-80, width, edgecolor='none', color='#FF0000')
+            plt.bar(obs_gust10.index, obs_gust10['wind_degrees']-obs_gust10['wind_degrees']-80, width, edgecolor='none', color='#FF3385')
+            plt.bar(obs_windNA.index, obs_windNA['wind_degrees']-obs_windNA['wind_degrees']-40, width, edgecolor='none', color='#8AB8E6')
+            plt.bar(obs_wind00.index, obs_wind00['wind_degrees']-obs_wind00['wind_degrees']-40, width, edgecolor='none', color='#CCFF33')
+            plt.bar(obs_wind01.index, obs_wind01['wind_degrees']-obs_wind01['wind_degrees']-40, width, edgecolor='none', color='#FFCC00')
+            plt.bar(obs_wind02.index, obs_wind02['wind_degrees']-obs_wind02['wind_degrees']-40, width, edgecolor='none', color='#FF9900')
+            plt.bar(obs_wind05.index, obs_wind05['wind_degrees']-obs_wind05['wind_degrees']-40, width, edgecolor='none', color='#FF0000')
+            plt.bar(obs_wind10.index, obs_wind10['wind_degrees']-obs_wind10['wind_degrees']-40, width, edgecolor='none', color='#FF3385')
             plt.plot_date(obs_plot.index, obs_plot['wind_degrees'], 'b.', ms=7)
+            plt.yticks(np.linspace(0,360,(p_int/4)+1))
             plt.ylabel('Wind Dir (deg)')
-            plt.ylim([0,359])
+            plt.ylim([-80,360])
             plt.grid(b=True, which='both', color='1',linestyle='-')
 
             ax4 = plt.subplot2grid((9,2), (3, 0), colspan=2)
@@ -258,6 +259,7 @@ while 2 > 1:
 
             windNA = obs_windNA.groupby(['wind_degrees_u'])['wind_degrees'].count().reset_index().rename(columns={'wind_degrees': 'windNA'})
             wind00 = obs_wind00.groupby(['wind_degrees_u'])['wind_degrees'].count().reset_index().rename(columns={'wind_degrees': 'wind00'})
+            wind01 = obs_wind01.groupby(['wind_degrees_u'])['wind_degrees'].count().reset_index().rename(columns={'wind_degrees': 'wind01'})
             wind02 = obs_wind02.groupby(['wind_degrees_u'])['wind_degrees'].count().reset_index().rename(columns={'wind_degrees': 'wind02'})
             wind05 = obs_wind05.groupby(['wind_degrees_u'])['wind_degrees'].count().reset_index().rename(columns={'wind_degrees': 'wind05'})
             wind10 = obs_wind10.groupby(['wind_degrees_u'])['wind_degrees'].count().reset_index().rename(columns={'wind_degrees': 'wind10'})
@@ -266,6 +268,7 @@ while 2 > 1:
 
             df = df_deg.merge(windNA, on=['wind_degrees_u'], how='left')\
                         .merge(wind00, on=['wind_degrees_u'], how='left')\
+                        .merge(wind01, on=['wind_degrees_u'], how='left')\
                         .merge(wind02, on=['wind_degrees_u'], how='left')\
                         .merge(wind05, on=['wind_degrees_u'], how='left')\
                         .merge(wind10, on=['wind_degrees_u'], how='left')
@@ -273,10 +276,11 @@ while 2 > 1:
             df = df.fillna(0)
             df = df.sort(columns=['wind_degrees_u'], axis=0, ascending=True)
 
-            total = df.windNA.sum()+df.wind00.sum()+df.wind02.sum()+df.wind05.sum()+df.wind10.sum()
+            total = df.windNA.sum()+df.wind00.sum()+df.wind01.sum()+df.wind02.sum()+df.wind05.sum()+df.wind10.sum()
 
             df['calm'] = df.windNA.sum()/total*100/16
             df.wind00 = df.wind00/total*100
+            df.wind01 = df.wind01/total*100
             df.wind02 = df.wind02/total*100
             df.wind05 = df.wind05/total*100
             df.wind10 = df.wind10/total*100
@@ -292,10 +296,11 @@ while 2 > 1:
             ax7.xaxis.set_ticks_position('none')
             ax7.yaxis.set_ticks_position('none')
             bars = ax7.bar(theta, df.calm, width=width_polar, color='#8AB8E6', edgecolor='none', bottom=0.0)
-            bars = ax7.bar(theta, df.wind00, width=width_polar, color='#FFCC00', edgecolor='.9', bottom=df.calm)
-            bars = ax7.bar(theta, df.wind02, width=width_polar, color='#FF9900', edgecolor='.9', bottom=df.calm+df.wind00)
-            bars = ax7.bar(theta, df.wind05, width=width_polar, color='#FF0000', edgecolor='.9', bottom=df.calm+df.wind00+df.wind02)
-            bars = ax7.bar(theta, df.wind10, width=width_polar, color='#FF3385', edgecolor='.9', bottom=df.calm+df.wind00+df.wind02+df.wind05)
+            bars = ax7.bar(theta, df.wind00, width=width_polar, color='#CCFF33', edgecolor='.9', bottom=df.calm)
+            bars = ax7.bar(theta, df.wind01, width=width_polar, color='#FFCC00', edgecolor='.9', bottom=df.calm+df.wind00)
+            bars = ax7.bar(theta, df.wind02, width=width_polar, color='#FF9900', edgecolor='.9', bottom=df.calm+df.wind00+df.wind01)
+            bars = ax7.bar(theta, df.wind05, width=width_polar, color='#FF0000', edgecolor='.9', bottom=df.calm+df.wind00+df.wind01+df.wind02)
+            bars = ax7.bar(theta, df.wind10, width=width_polar, color='#FF3385', edgecolor='.9', bottom=df.calm+df.wind00+df.wind01+df.wind02+df.wind05)
             ax7.set_theta_zero_location('N')
             ax7.set_theta_direction(-1)
 
