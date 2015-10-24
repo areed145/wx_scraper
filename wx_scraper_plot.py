@@ -21,7 +21,7 @@ resample_int = '5min'
 width = 1/24/60*5 #interval is a day, need to divide by reample int
 p_int = 32
 folder = '/Users/areed145/Dropbox/wx_scraper/'
-cur_obs_date = '20151018'
+cur_obs_date = '20151019'
 url = 'http://api.wunderground.com/weatherstation/WXCurrentObXML.asp?ID='+sid
 
 try:
@@ -141,13 +141,13 @@ ax3.spines['left'].set_visible(False)
 ax3.xaxis.set_ticks_position('none')
 ax3.yaxis.set_ticks_position('none')
 plt.bar(obs_gustNA.index, obs_gustNA['wind_degrees']-obs_gustNA['wind_degrees']-80, width, edgecolor='none', color='#8AB8E6')
-plt.bar(obs_gust00.index, obs_gust00['wind_degrees']-obs_gust00['wind_degrees']-80, width, edgecolor='none', color='#CCFF33')
+plt.bar(obs_gust00.index, obs_gust00['wind_degrees']-obs_gust00['wind_degrees']-80, width, edgecolor='none', color='#FFE066')
 plt.bar(obs_gust01.index, obs_gust01['wind_degrees']-obs_gust01['wind_degrees']-80, width, edgecolor='none', color='#FFCC00')
 plt.bar(obs_gust02.index, obs_gust02['wind_degrees']-obs_gust02['wind_degrees']-80, width, edgecolor='none', color='#FF9900')
 plt.bar(obs_gust05.index, obs_gust05['wind_degrees']-obs_gust05['wind_degrees']-80, width, edgecolor='none', color='#FF0000')
 plt.bar(obs_gust10.index, obs_gust10['wind_degrees']-obs_gust10['wind_degrees']-80, width, edgecolor='none', color='#FF3385')
 plt.bar(obs_windNA.index, obs_windNA['wind_degrees']-obs_windNA['wind_degrees']-40, width, edgecolor='none', color='#8AB8E6')
-plt.bar(obs_wind00.index, obs_wind00['wind_degrees']-obs_wind00['wind_degrees']-40, width, edgecolor='none', color='#CCFF33')
+plt.bar(obs_wind00.index, obs_wind00['wind_degrees']-obs_wind00['wind_degrees']-40, width, edgecolor='none', color='#FFE066')
 plt.bar(obs_wind01.index, obs_wind01['wind_degrees']-obs_wind01['wind_degrees']-40, width, edgecolor='none', color='#FFCC00')
 plt.bar(obs_wind02.index, obs_wind02['wind_degrees']-obs_wind02['wind_degrees']-40, width, edgecolor='none', color='#FF9900')
 plt.bar(obs_wind05.index, obs_wind05['wind_degrees']-obs_wind05['wind_degrees']-40, width, edgecolor='none', color='#FF0000')
@@ -241,7 +241,7 @@ ax7.spines['polar'].set_visible(False)
 ax7.xaxis.set_ticks_position('none')
 ax7.yaxis.set_ticks_position('none')
 bars = ax7.bar(theta, df.calm, width=width_polar, color='#8AB8E6', edgecolor='none', bottom=0.0)
-bars = ax7.bar(theta, df.wind00, width=width_polar, color='#CCFF33', edgecolor='.9', bottom=df.calm)
+bars = ax7.bar(theta, df.wind00, width=width_polar, color='#FFE066', edgecolor='.9', bottom=df.calm)
 bars = ax7.bar(theta, df.wind01, width=width_polar, color='#FFCC00', edgecolor='.9', bottom=df.calm+df.wind00)
 bars = ax7.bar(theta, df.wind02, width=width_polar, color='#FF9900', edgecolor='.9', bottom=df.calm+df.wind00+df.wind01)
 bars = ax7.bar(theta, df.wind05, width=width_polar, color='#FF0000', edgecolor='.9', bottom=df.calm+df.wind00+df.wind01+df.wind02)
