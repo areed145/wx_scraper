@@ -18,11 +18,11 @@ import pytz
 import glob
 
 sid = 'KCABAKER38'
-resample_int = '5min'
-width = 1/24/60*5 #interval is a day, need to divide by reample int
+resample_int = '60min'
+width = 1/24/60*60 #interval is a day, need to divide by reample int
 p_int = 32
 folder = '/Users/areed145/Dropbox/wx_scraper/'
-cur_obs_date = '20151019'
+cur_obs_date = '201510'
 url = 'http://api.wunderground.com/weatherstation/WXCurrentObXML.asp?ID='+sid
 
 try:
