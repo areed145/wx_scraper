@@ -6,14 +6,14 @@ Created on Thu Oct 15 20:20:13 2015
 """
 import bs4
 import urllib
-import pandas as pd
-import datetime as dt
 import glob
 import time
+import pandas as pd
+import numpy as np
+import datetime as dt
 import matplotlib.pyplot as plt
 from cmath import rect, phase
 from math import radians, degrees
-import numpy as np
 from dateutil.relativedelta import relativedelta
 from sys import platform as _platform
 #from matplotlib.dates import DateFormatter
@@ -23,7 +23,7 @@ from sys import platform as _platform
 
 # input data
 start_date = '2015-01-01'
-sid = 'KCAINYOK7'
+sid = 'KCABAKER38'
 if _platform == "darwin":
     folder = '/Users/areed145/Dropbox/GitHub/wx_scraper/'
 elif _platform == "win32":
@@ -38,9 +38,9 @@ summ_3mo = 360
 summ_all = 1440
 archive = False
 
-plt.rcParams.update({'font.size': 7})
-plt.rcParams.update({'savefig.dpi': 200})
-plt.rcParams.update({'savefig.facecolor': 'slategray'})
+plt.rcParams.update({'font.size': 9})
+plt.rcParams.update({'savefig.dpi': 300})
+plt.rcParams.update({'savefig.facecolor': 'azure'})
 plt.rcParams.update({'savefig.edgecolor': 'k'})
 plt.rcParams.update({'savefig.format': 'jpg'})
 plt.rcParams.update({'savefig.jpeg_quality': 95})
@@ -67,7 +67,7 @@ state = soup_sd.find('state').getText()
 lat = float(soup_sd.find('latitude').getText())
 long = float(soup_sd.find('longitude').getText())
 elev = int(soup_sd.find('elevation').getText()[:-3])
-
+latest = soup_sd.find('observation_time').getText()
 
 #####################################################################################################
 
@@ -174,7 +174,7 @@ def wr(df,p_int,name):
     
     plt.close("all")
     fig = plt.figure()
-    fig.set_size_inches(7.5, 7.5)
+    fig.set_size_inches(4.5, 4.5)
     ax = plt.subplot(projection="polar")
     ax.set_axisbelow(True)
     ax.spines['polar'].set_visible(True)
@@ -186,11 +186,15 @@ def wr(df,p_int,name):
     ax.bar(theta, df_wr.wind02, width=width_polar, color='#bfff00', edgecolor='k', bottom=df_wr.windNA+df_wr.wind00+df_wr.wind01)
     ax.bar(theta, df_wr.wind05, width=width_polar, color='#ffcc00', edgecolor='k', bottom=df_wr.windNA+df_wr.wind00+df_wr.wind01+df_wr.wind02)
     ax.bar(theta, df_wr.wind10, width=width_polar, color='#ffff00', edgecolor='k', bottom=df_wr.windNA+df_wr.wind00+df_wr.wind01+df_wr.wind02+df_wr.wind05)
-    ax.set_title(sid+' - '+city+', '+state+'\n'+str(lat)+', '+str(long)+', '+str(elev)+'ft\nWind Rose - '+name)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
+    fig.text(0.02,0.98,sid+' - '+city+', '+state+'\n'+str(lat)+', '+str(long)+', '+str(elev)+'ft\nWind Rose - '+name,
+                         verticalalignment='top',
+                         horizontalalignment='left',
+                         transform=ax.transAxes)
+    fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax.transAxes)
     fig.savefig(folder+'plots/'+sid+'_wr_'+name+'.'+plt.rcParams['savefig.format'])
-    
+
 def wd(df,p_int,name,size):
     width = 1/24/60*int(df.index.freqstr[:-1])
     df.loc[:,'WindDir'] = np.round((df.WindDir / (360 / p_int)),0) * (360 / p_int)
@@ -244,6 +248,7 @@ def wd(df,p_int,name,size):
     ax1.set_ylabel('Wind Direction (deg)')
     ax1.set_ylim([-height,360])
     ax1.grid(b=True, which='both', color='k',linestyle='-')
+    fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax.transAxes)
     fig.savefig(folder+'plots/'+sid+'_wd_'+name+'.'+plt.rcParams['savefig.format'])
 
 def tdhd(df,name,lw):
@@ -267,6 +272,7 @@ def tdhd(df,name,lw):
     ax1.set_ylabel('Temp/Dewpoint (degF)')
     ax2.set_ylabel('Humidity (%)')
     ax1.grid(b=True, which='both', color='k',linestyle='-')
+    fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax.transAxes)
     fig.savefig(folder+'plots/'+sid+'_tdhd_'+name+'.'+plt.rcParams['savefig.format'])
 
 def pppd(df,name,lw):
@@ -288,6 +294,7 @@ def pppd(df,name,lw):
     ax1.set_ylabel('Pressure (inHg)')
     ax2.set_ylabel('Precipitation (in)')
     ax1.grid(b=True, which='both', color='k',linestyle='-')
+    fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax.transAxes)
     fig.savefig(folder+'plots/'+sid+'_pppd_'+name+'.'+plt.rcParams['savefig.format'])  
 
 def dTdts(df,name,size):
@@ -295,7 +302,7 @@ def dTdts(df,name,size):
     plt.close("all")
     fig = plt.figure()
     fig.set_size_inches(7.5, 5)
-    plt.title(sid+' - '+city+', '+state+'\n'+str(lat)+', '+str(long)+', '+str(elev)+'ft\nSolar Radiation, dT/dt, Temp - '+name)
+    plt.title(sid+' - '+city+', '+state+': '+str(lat)+', '+str(long)+', '+str(elev)+'ft\nSolar Radiation, dT/dt, Temp - '+name)
     ax = plt.subplot()
     ax.set_axisbelow(True)
     ax.spines['top'].set_visible(True)
@@ -307,6 +314,7 @@ def dTdts(df,name,size):
     ax.grid(b=True, which='both', color='k',linestyle='-')
     cbar = plt.colorbar(axcb)
     cbar.set_label('Temp (degF)')
+    fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax.transAxes)
     fig.savefig(folder+'plots/'+sid+'_dTdts_'+name+'.'+plt.rcParams['savefig.format'])
     
 def dTdtd(df,name,size):
@@ -328,14 +336,15 @@ def dTdtd(df,name,size):
     ax.grid(b=True, which='both', color='k',linestyle='-')
     cbar = plt.colorbar(axcb)
     cbar.set_label('dT/dt (degF/hr)')
+    fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax.transAxes)
     fig.savefig(folder+'plots/'+sid+'_dTdtd_'+name+'.'+plt.rcParams['savefig.format'])    
 
 def tdhs(df,name,size):
     #formatter = DateFormatter('%H:%M', tz=pytz.timezone('US/Pacific'))
     plt.close("all")
     fig = plt.figure()
-    fig.set_size_inches(7.5, 7.5)
-    plt.title(sid+' - '+city+', '+state+'\n'+str(lat)+', '+str(long)+', '+str(elev)+'ft\nTemp, Dewpoint, Humidity - '+name)
+    fig.set_size_inches(7.5, 5)
+    plt.title(sid+' - '+city+', '+state+': '+str(lat)+', '+str(long)+', '+str(elev)+'ft\nTemp, Dewpoint, Humidity - '+name)
     ax = plt.subplot()
     ax.set_axisbelow(True)
     ax.spines['top'].set_visible(True)
@@ -347,13 +356,14 @@ def tdhs(df,name,size):
     ax.grid(b=True, which='both', color='k',linestyle='-')
     cbar = plt.colorbar(axcb)
     cbar.set_label('Humidity (%)')
+    fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax.transAxes)
     fig.savefig(folder+'plots/'+sid+'_tdhs_'+name+'.'+plt.rcParams['savefig.format'])
     
 def combo(df,name,lw):
     #formatter = DateFormatter('%H:%M', tz=pytz.timezone('US/Pacific'))
     plt.close("all")
     fig = plt.figure()
-    fig.set_size_inches(7.5, 11)
+    fig.set_size_inches(7.5, 9)
     fig.suptitle(sid+' - '+city+', '+state+': '+str(lat)+', '+str(long)+', '+str(elev)+'ft\nTemp, Dewpoint, Humidity - '+name)
     ax1 = plt.subplot(5,1,1)
     ax1.set_axisbelow(True)
@@ -414,235 +424,223 @@ def combo(df,name,lw):
     ax5.grid(b=True, which='both', color='k',linestyle='-')
     ax5.set_xlabel('Date')
     
+    fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax5.transAxes)    
     fig.savefig(folder+'plots/'+sid+'_combo_'+name+'.'+plt.rcParams['savefig.format'])
 
 #####################################################################################################
 
-# print initial data
-print('-- WX_SCRAPER --')
-print('(c) Adam Reeder')
-print('station id: '+sid)
-print('neighborhood: '+neigh)
-print('city: '+city)
-print('state: '+state)
-print('lat: '+str(lat))
-print('long: '+str(long))
-print('elevation: '+str(elev))
-print('start date: '+str(start_date))
-print('history: '+str(delta)+' days')
+def main():
 
-# data pull loop
-for date_count in range(delta+1):
-
-    date = start_date+dt.timedelta(days=date_count)
-    year = date.year
-    month = date.month
-    day = date.day
-    year_str = str(year)
-
-    if month < 10:
-        month_str = '0'+str(month)
-    else:
-        month_str = str(month)
-
-    if day < 10:
-        day_str = '0'+str(day)
-    else:
-        day_str = str(day)
-
-    url = 'http://www.wunderground.com/weatherstation/WXDailyHistory.asp?ID='+sid+'&day='+str(day)+'&month='+str(month)+'&year='+str(year)+'&graphspan=day&format=1'
-    file = folder+'data/'+sid+'_'+year_str+'_'+month_str+'_'+day_str+'.csv'
-
-    if date_count >= delta - 7:
-        try:
-            soup = bs4.BeautifulSoup(urllib.request.urlopen(url)).text
-            if soup.count('\n') > 1:
-                text_file = open(file, 'w')
-                text_file.write(soup)
-                text_file.close()
-                print(year_str+'-'+month_str+'-'+day_str+': fetched most recent')  
-            else:
-                print(year_str+'-'+month_str+'-'+day_str+': empty')
-                continue
-        except:
-            pass
-    else:
-        try:
-            test = pd.read_csv(file,index_col=False)
-            del test
-            print(year_str+'-'+month_str+'-'+day_str+': skipped')
-        except:
+    # print initial data
+    print('-- WX_SCRAPER --')
+    print('(c) Adam Reeder')
+    print('station id: '+sid)
+    print('neighborhood: '+neigh)
+    print('city: '+city)
+    print('state: '+state)
+    print('lat: '+str(lat))
+    print('long: '+str(long))
+    print('elevation: '+str(elev))
+    print('start date: '+str(start_date))
+    print('history: '+str(delta)+' days')
+    print(latest)
+    
+    # data pull loop
+    for date_count in range(delta+1):
+    
+        date = start_date+dt.timedelta(days=date_count)
+        year = date.year
+        month = date.month
+        day = date.day
+        year_str = str(year)
+    
+        if month < 10:
+            month_str = '0'+str(month)
+        else:
+            month_str = str(month)
+    
+        if day < 10:
+            day_str = '0'+str(day)
+        else:
+            day_str = str(day)
+    
+        url = 'http://www.wunderground.com/weatherstation/WXDailyHistory.asp?ID='+sid+'&day='+str(day)+'&month='+str(month)+'&year='+str(year)+'&graphspan=day&format=1'
+        file = folder+'data/'+sid+'_'+year_str+'_'+month_str+'_'+day_str+'.csv'
+    
+        if date_count >= delta - 7:
             try:
-                soup = bs4.BeautifulSoup(urllib.request.urlopen(url)).text  
+                soup = bs4.BeautifulSoup(urllib.request.urlopen(url)).text
                 if soup.count('\n') > 1:
                     text_file = open(file, 'w')
                     text_file.write(soup)
                     text_file.close()
-                    print(year_str+'-'+month_str+'-'+day_str+': fetched')  
+                    print(year_str+'-'+month_str+'-'+day_str+': fetched most recent')  
                 else:
                     print(year_str+'-'+month_str+'-'+day_str+': empty')
                     continue
             except:
                 pass
-
-#####################################################################################################
-
-# compile to main dataframe  
-df = pd.DataFrame()
-for csv1 in glob.glob(folder+'data/'+sid+'*.csv'):
-    df = df.append(pd.read_csv(csv1,index_col=False))
-
-print('data files loaded')
-
-df['Time'] = pd.to_datetime(df.Time)
-df['DateUTC'] = pd.to_datetime(df.DateUTC)
-df.index = df.Time
-df = df.sort(['DateUTC'],ascending = True)
-
-# data treatment
-treat(df,'DewpointF',-50,pd.np.nan,'Dewpoint')
-treat(df,'HourlyPrecipIn',0,0,'PrecipHourly')
-treat(df,'Humidity',0,pd.np.nan,'Humidity')
-treat(df,'PressureIn',0,pd.np.nan,'Pressure')
-treat(df,'SolarRadiationWatts/m^2',-100,pd.np.nan,'SolarRadiation')
-treat(df,'TemperatureF',-100,pd.np.nan,'Temp')
-treat(df,'WindDirectionDegrees',-.01,pd.np.nan,'WindDir')
-treat(df,'WindSpeedGustMPH',-.01,pd.np.nan,'WindspeedGust')
-treat(df,'WindSpeedMPH',-.01,pd.np.nan,'Windspeed')
-treat(df,'dailyrainin',-.01,pd.np.nan,'PrecipDaily')
-
-df.loc[df['Windspeed'] == 0, 'WindDir'] = pd.np.nan
-
-print('data treated')
-
-# calculations
-df['SID'] = sid
-df['Lat'] = lat
-df['Long'] = long
-df['Elev'] = elev
-df['City'] = city
-df['State'] = state
-df['CloudBase'] = (((df['Temp'] - df['Dewpoint']) / 4.4) * 1000) + elev
-df['dT'] = df.Temp - df.Temp.shift(1)
-df['dP'] = df.Pressure - df.Pressure.shift(1)
-df['dt'] = df.Time - df.Time.shift(1)
-df['dt'] = df.dt.astype('timedelta64[s]')/(60*60)
-df['dTdt'] = df['dT'] / df['dt']
-df['dPdt'] = df['dP'] / df['dt']
-df.drop(['dt','dT','dP','SoftwareType'], axis=1, inplace=True)
-
-print('calculations completed')
-
-# archive
-if archive == True:
-    df.to_csv(folder+'archive/'+sid+'.csv')
-    df.drop(['SID','Lat','Long','Elev', 'City', 'State'], axis=1, inplace=True)
-    print('data archived')
-else:
-    print('data archive not selected')
-
-# create limited dataframes
-df_rawl_tdy = rawlimit_date(df,today)
-df_rawl_wek = rawlimit_date(df,lim_wek)
-df_rawl_mon = rawlimit_date(df,lim_mon)
-df_rawl_3mo = rawlimit_date(df,lim_3mo)
-df_rawl_all = rawlimit_date(df,start_date)
-
-df_rawl_day,df_rawl_nit = rawlimit_daynite(df)
-df_rawl_win,df_rawl_spr,df_rawl_smr,df_rawl_fal = rawlimit_season(df)
-
-print('timeframes created')
-
-df_summ_tdy = summarize(df,today,str(summ_tdy)+'min')
-df_summ_wek = summarize(df,lim_wek,str(summ_wek)+'min')
-df_summ_mon = summarize(df,lim_mon,str(summ_mon)+'min')
-df_summ_3mo = summarize(df,lim_3mo,str(summ_3mo)+'min')
-df_summ_all = summarize(df,start_date,str(summ_all)+'min')
-
-print('summaries created')
-
-#####################################################################################################
-
-# create combo plots
-try:
-    combo(df_summ_tdy,'day',2)
-    combo(df_summ_wek,'week',2)
-    combo(df_summ_mon,'month',1)
-    combo(df_summ_3mo,'3mo',1)
-    combo(df_summ_all,'all',1)
-except:
-    pass
+        else:
+            try:
+                pd.read_csv(file,index_col=False)
+                print(year_str+'-'+month_str+'-'+day_str+': skipped')
+            except:
+                try:
+                    soup = bs4.BeautifulSoup(urllib.request.urlopen(url)).text  
+                    if soup.count('\n') > 1:
+                        text_file = open(file, 'w')
+                        text_file.write(soup)
+                        text_file.close()
+                        print(year_str+'-'+month_str+'-'+day_str+': fetched')  
+                    else:
+                        print(year_str+'-'+month_str+'-'+day_str+': empty')
+                        continue
+                except:
+                    pass
     
-# create windroses
-try:
-    wr(df_rawl_tdy,p_int,'day')
-    wr(df_rawl_wek,p_int,'week')
-    wr(df_rawl_mon,p_int,'month')
-    wr(df_rawl_3mo,p_int,'3mo')
-    wr(df_rawl_all,p_int,'all')
-    wr(df_rawl_day,p_int,'day')
-    wr(df_rawl_nit,p_int,'night')
-except:
-    pass
-
-# create wind plots
-try:
-    wd(df_summ_tdy,p_int,'day',4)
-    wd(df_summ_wek,p_int,'week',4)
-    wd(df_summ_mon,p_int,'month',4)
-    wd(df_summ_3mo,p_int,'3mo',4)
-    wd(df_summ_all,p_int,'all',4)
-except:
-    pass
-
-## create temp + dewpoint plots
-#try:
-#    tdhd(df_summ_tdy,'day',3)
-#    tdhd(df_summ_wek,'week',2)
-#    tdhd(df_summ_mon,'month',1)
-#    tdhd(df_summ_3mo,'3mo',1)
-#    tdhd(df_summ_all,'all',1)
-#except:
-#    pass
-
-## create pressure + precip plots
-#try:
-#    pppd(df_summ_tdy,'day',3)
-#    pppd(df_summ_wek,'week',2)
-#    pppd(df_summ_mon,'month',1)
-#    pppd(df_summ_3mo,'3mo',1)
-#    pppd(df_summ_all,'all',1)
-#except:
-#    pass
-
-# create plots
-try:
-    dTdts(df_summ_tdy,'day',100)
-    dTdts(df_summ_wek,'week',75)
-    dTdts(df_summ_mon,'month',75)
-    dTdts(df_summ_3mo,'3mo',75)
-    dTdts(df_summ_all,'all',75)
-except:
-    pass
-
-# create plots
-try:
-    tdhs(df_summ_tdy,'day',100)
-    tdhs(df_summ_wek,'week',75)
-    tdhs(df_summ_mon,'month',75)
-    tdhs(df_summ_3mo,'3mo',75)
-    tdhs(df_summ_all,'all',75)
-except:
-    pass
-
-# create plots
-try:
-    dTdtd(df_summ_tdy,'day',100)
-    dTdtd(df_summ_wek,'week',75)
-    dTdtd(df_summ_mon,'month',75)
-    dTdtd(df_summ_3mo,'3mo',75)
-    dTdtd(df_summ_all,'all',75)
-except:
-    pass
+    #####################################################################################################
     
-print('plots completed')
+    # compile to main dataframe  
+    df = pd.DataFrame()
+    for csv1 in glob.glob(folder+'data/'+sid+'*.csv'):
+        df = df.append(pd.read_csv(csv1,index_col=False))
+    
+    print('data files loaded')
+    
+    df['Time'] = pd.to_datetime(df.Time)
+    df['DateUTC'] = pd.to_datetime(df.DateUTC)
+    df.index = df.Time
+    df = df.sort(['DateUTC'],ascending = True)
+    
+    # data treatment
+    treat(df,'DewpointF',-50,pd.np.nan,'Dewpoint')
+    treat(df,'HourlyPrecipIn',0,0,'PrecipHourly')
+    treat(df,'Humidity',0,pd.np.nan,'Humidity')
+    treat(df,'PressureIn',0,pd.np.nan,'Pressure')
+    treat(df,'SolarRadiationWatts/m^2',-100,pd.np.nan,'SolarRadiation')
+    treat(df,'TemperatureF',-100,pd.np.nan,'Temp')
+    treat(df,'WindDirectionDegrees',-.01,pd.np.nan,'WindDir')
+    treat(df,'WindSpeedGustMPH',-.01,pd.np.nan,'WindspeedGust')
+    treat(df,'WindSpeedMPH',-.01,pd.np.nan,'Windspeed')
+    treat(df,'dailyrainin',-.01,pd.np.nan,'PrecipDaily')
+    
+    df.loc[df['Windspeed'] == 0, 'WindDir'] = pd.np.nan
+    
+    print('data treated')
+    
+    # calculations
+    df['SID'] = sid
+    df['Lat'] = lat
+    df['Long'] = long
+    df['Elev'] = elev
+    df['City'] = city
+    df['State'] = state
+    df['CloudBase'] = (((df['Temp'] - df['Dewpoint']) / 4.4) * 1000) + elev
+    df['dT'] = df.Temp - df.Temp.shift(1)
+    df['dP'] = df.Pressure - df.Pressure.shift(1)
+    df['dt'] = df.Time - df.Time.shift(1)
+    df['dt'] = df.dt.astype('timedelta64[s]')/(60*60)
+    df['dTdt'] = df['dT'] / df['dt']
+    df['dPdt'] = df['dP'] / df['dt']
+    df.drop(['dt','dT','dP','SoftwareType'], axis=1, inplace=True)
+    
+    print('calculations completed')
+    
+    # archive
+    if archive == True:
+        df.to_csv(folder+'archive/'+sid+'.csv')
+        df.drop(['SID','Lat','Long','Elev', 'City', 'State'], axis=1, inplace=True)
+        print('data archived')
+    else:
+        print('data archive not selected')
+    
+    # create limited dataframes
+    df_rawl_tdy = rawlimit_date(df,today)
+    df_rawl_wek = rawlimit_date(df,lim_wek)
+    df_rawl_mon = rawlimit_date(df,lim_mon)
+    df_rawl_3mo = rawlimit_date(df,lim_3mo)
+    df_rawl_all = rawlimit_date(df,start_date)
+    
+    df_rawl_day,df_rawl_nit = rawlimit_daynite(df)
+    df_rawl_win,df_rawl_spr,df_rawl_smr,df_rawl_fal = rawlimit_season(df)
+    
+    print('timeframes created')
+    
+    df_summ_tdy = summarize(df,today,str(summ_tdy)+'min')
+    df_summ_wek = summarize(df,lim_wek,str(summ_wek)+'min')
+    df_summ_mon = summarize(df,lim_mon,str(summ_mon)+'min')
+    df_summ_3mo = summarize(df,lim_3mo,str(summ_3mo)+'min')
+    df_summ_all = summarize(df,start_date,str(summ_all)+'min')
+    
+    print('summaries created')
+    
+    #####################################################################################################
+    
+    # create combo plots
+    try:
+        combo(df_summ_tdy,'day',1)
+        combo(df_summ_wek,'week',1)
+        combo(df_summ_mon,'month',1)
+        combo(df_summ_3mo,'3mo',1)
+        combo(df_summ_all,'all',1)
+    except:
+        pass
+        
+    # create windroses
+    try:
+        wr(df_rawl_tdy,p_int,'day')
+        wr(df_rawl_wek,p_int,'week')
+        wr(df_rawl_mon,p_int,'month')
+        wr(df_rawl_3mo,p_int,'3mo')
+        wr(df_rawl_all,p_int,'all')
+        wr(df_rawl_day,p_int,'day')
+        wr(df_rawl_nit,p_int,'night')
+    except:
+        pass
+    
+    # create wind plots
+    try:
+        wd(df_summ_tdy,p_int,'day',4)
+        wd(df_summ_wek,p_int,'week',4)
+        wd(df_summ_mon,p_int,'month',4)
+        wd(df_summ_3mo,p_int,'3mo',4)
+        wd(df_summ_all,p_int,'all',4)
+    except:
+        pass
+    
+    # create plots
+    try:
+        dTdts(df_summ_tdy,'day',75)
+        dTdts(df_summ_wek,'week',75)
+        dTdts(df_summ_mon,'month',75)
+        dTdts(df_summ_3mo,'3mo',75)
+        dTdts(df_summ_all,'all',75)
+    except:
+        pass
+    
+    # create plots
+    try:
+        tdhs(df_summ_tdy,'day',75)
+        tdhs(df_summ_wek,'week',75)
+        tdhs(df_summ_mon,'month',75)
+        tdhs(df_summ_3mo,'3mo',75)
+        tdhs(df_summ_all,'all',75)
+    except:
+        pass
+    
+    # create plots
+    try:
+        dTdtd(df_summ_tdy,'day',75)
+        dTdtd(df_summ_wek,'week',75)
+        dTdtd(df_summ_mon,'month',75)
+        dTdtd(df_summ_3mo,'3mo',75)
+        dTdtd(df_summ_all,'all',75)
+    except:
+        pass
+        
+    print('plots completed')
+    
+# run main loop
+while 1<2:
+    main()
+    time.sleep(60*5)    
