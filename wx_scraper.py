@@ -23,19 +23,24 @@ from sys import platform as _platform
 #####################################################################################################
 
 # input data
-start_date = '2015-02-26'
-sid_list = ['KCABAKER38','KCABAKER8']
-mac_folder = '/Users/areed145/Dropbox/GitHub/wx_scraper/'
-win_folder = 'C:/Users/bvjs/Python/python-3.4.3.amd64/bvjs/wx_scraper/'
-p_int = 16
-width = 1/24/60*5
-height = 90
-summ_tdy = 15
-summ_wek = 30
-summ_mon = 120
-summ_3mo = 360
-summ_all = 1440
-save_archive = False
+start_date = '2015-02-26' # date to start pulling data
+sid_list = ['KCABAKER38','KCABAKER8'] # list of stations to pull
+mac_folder = '/Users/areed145/Dropbox/GitHub/wx_scraper/' # folder if on Mac
+win_folder = 'C:/Users/bvjs/Python/python-3.4.3.amd64/bvjs/wx_scraper/' # folder if on PC
+p_int = 16 # number of segments for wind rose plots
+height = 90 # height of wind plot heat map
+summ_tdy = 15 # minutes to aggregate in "today" summary
+summ_wek = 30 # minutes to aggregate in "week" summary
+summ_mon = 2 # hours to aggregate in "month" summary
+summ_3mo = 6 # hours ro aggregate in "3month" summary
+summ_all = 24 # hours to aggreagate in "all" summary
+save_archive = False # save archive?
+sleep_time = 10 # minutes to sleep before pulling stations again
+
+# convert hour summary intervals to minutes
+summ_mon = summ_mon * 60
+summ_3mo = summ_3mo * 60
+summ_all = summ_all * 60
 
 # update plot defaults
 plt.rcParams.update({'font.size': 9})
@@ -47,7 +52,7 @@ plt.rcParams.update({'savefig.jpeg_quality': 95})
 plt.rcParams.update({'savefig.pad_inches': 0.05})
 plt.rcParams.update({'text.color': 'k'})
 
-# folder
+# set folder
 if _platform == "darwin":
     folder = mac_folder
 elif _platform == "win32":
@@ -98,7 +103,6 @@ def rawlimit_season(df):
     df_fal = df[(df.Time.map(lambda x:x.month) >= 9) & (df.Time.map(lambda x:x.month) <= 11)]
     df_not = df[(df.Time.map(lambda x:x.month) >= 3) & (df.Time.map(lambda x:x.month) <= 11)]
     df_win = df[~df.Time.isin(df_not.Time)]
-    
     df_win = df_win.reindex_axis(sorted(df_win.columns), axis=1)
     df_spr = df_spr.reindex_axis(sorted(df_spr.columns), axis=1)
     df_smr = df_smr.reindex_axis(sorted(df_smr.columns), axis=1)
@@ -410,8 +414,7 @@ def combo(df,name,lw,latest,city,state,lat,long,elev):
     fig.savefig(folder+'plots/'+sid+'_combo_'+name+'.'+plt.rcParams['savefig.format'])
 
 def main(start_date,sid):
-    
-    # station data
+    # get station data
     url_sd = 'http://api.wunderground.com/weatherstation/WXCurrentObXML.asp?ID='+sid
     soup_sd = bs4.BeautifulSoup(urllib.request.urlopen(url_sd))
     #full = soup_sd.find('full').getText()
@@ -440,7 +443,7 @@ def main(start_date,sid):
     except:
         fetch_dates = fetch_range
 
-    # print initial data
+    # print header data
     print('-- WX_SCRAPER --')
     print('(c) Adam Reeder')
     print('station id: '+sid)
@@ -550,7 +553,7 @@ def main(start_date,sid):
     else:
         print('data archive not selected')
     
-    # create limited dataframes
+    # create limited dataframes and summaries
     df_rawl_tdy = rawlimit_date(df,today)
     df_rawl_wek = rawlimit_date(df,lim_wek)
     df_rawl_mon = rawlimit_date(df,lim_mon)
@@ -634,11 +637,11 @@ def main(start_date,sid):
         
     print('plots completed')
     
-# run main loop
+# main loop
 while 1<2:
     for sid in sid_list:
         try:
             main(start_date,sid)
         except:
             print(sid+' failed')
-    time.sleep(60*10)    
+    time.sleep(60*sleep_time)    
