@@ -23,7 +23,7 @@ from sys import platform as _platform
 #####################################################################################################
 
 # input data
-start_date = '2015-02-26'
+start_date = '2016-02-01'
 sid_list = ['KCABAKER38','KCABAKER8']
 mac_folder = '/Users/areed145/Dropbox/GitHub/wx_scraper/'
 win_folder = 'C:/Users/bvjs/Python/python-3.4.3.amd64/bvjs/wx_scraper/'
@@ -383,16 +383,16 @@ def combo(df,name,lw,latest,city,state,lat,long,elev):
     ax3.grid(b=True, which='both', color='k',linestyle='-')
     
     ax4= plt.subplot(5,1,4)
+    ax4.plot_date(df.index, df.dTdt_avg, marker = '', color='r', linestyle='-', linewidth=lw)
+    ax4.fill_between(df.index, df.dTdt_min, df.dTdt_max, facecolor='r', alpha=.2)
+    ax42 = ax4.twinx()
     try:
-        ax4.plot_date(df.index, df.SolarRadiation_avg, marker = '', color='orange', linestyle='-', linewidth=lw)
-        ax4.fill_between(df.index, df.SolarRadiation_min, df.SolarRadiation_max, facecolor='orange', alpha=.2)    
+        ax42.plot_date(df.index, df.SolarRadiation_avg, marker = '', color='orange', linestyle='-', linewidth=lw)
+        ax42.fill_between(df.index, df.SolarRadiation_min, df.SolarRadiation_max, facecolor='orange', alpha=.2)    
     except:
         pass
-    ax4.set_ylabel('Solar Radiation (W/m^2)')
-    ax42 = ax4.twinx()
-    ax42.plot_date(df.index, df.dTdt_avg, marker = '', color='r', linestyle='-', linewidth=lw)
-    ax42.fill_between(df.index, df.dTdt_min, df.dTdt_max, facecolor='r', alpha=.2)
-    ax42.set_ylabel('dT/dt (degF/hr)')
+    ax4.set_ylabel('dT/dt (degF/hr)')
+    ax42.set_ylabel('Solar Radiation (W/m^2)')
     ax4.grid(b=True, which='both', color='k',linestyle='-')
     
     ax5= plt.subplot(5,1,5)  
@@ -424,15 +424,17 @@ def main(start_date,sid):
     latest = soup_sd.find('observation_time').getText()
     
     # initialize the data pull
-    start_date = dt.datetime.strptime(start_date, "%Y-%m-%d").date()
+    start = dt.datetime.strptime(start_date, "%Y-%m-%d").date()
     today = dt.datetime.today().date()
     lim_mon = today+relativedelta(months=-1)
     lim_3mo = today+relativedelta(months=-3)
     lim_wek = today+relativedelta(days=-7)
-    fetch_range = pd.DataFrame(columns=['Date'],data=pd.date_range(start_date, today))
+    
+    fetch_range = pd.DataFrame()
+    fetch_range['Date'] = pd.DataFrame(columns=['Date'],data=pd.date_range(start, today)).Date.dt.date
 
     try:
-        data = pd.read_csv(folder+'data/'+sid+'_data.csv',index_col=False)
+        data = pd.read_csv(folder+'data/'+sid+'_data.csv',index_col=True)
         time.sleep(5)
         data_dates = pd.DataFrame(columns=['Date'],data=pd.to_datetime(data.Time).dt.date.unique())
         recent_range = pd.DataFrame(columns=['Date'],data=pd.date_range(lim_wek, today).date)
@@ -450,7 +452,7 @@ def main(start_date,sid):
     print('lat: '+str(lat))
     print('long: '+str(long))
     print('elevation: '+str(elev))
-    print('start date: '+str(start_date))
+    print('start date: '+str(start))
     print('history length: '+str(len(fetch_range))+' days')
     print('fetch length: '+str(len(fetch_dates))+' days')
     print(latest)
@@ -496,9 +498,9 @@ def main(start_date,sid):
             data = data.append(pd.read_csv(csv1,index_col=False))
             os.remove(csv1)
             
-    data.to_csv(folder+'data/'+sid+'_data.csv',index_col=False)
+    data.drop_duplicates().to_csv(folder+'data/'+sid+'_data.csv',index=False)
             
-    df = data
+    df = data.copy(deep=True)
     del data
             
     print('data files loaded')
@@ -555,7 +557,7 @@ def main(start_date,sid):
     df_rawl_wek = rawlimit_date(df,lim_wek)
     df_rawl_mon = rawlimit_date(df,lim_mon)
     df_rawl_3mo = rawlimit_date(df,lim_3mo)
-    df_rawl_all = rawlimit_date(df,start_date)
+    df_rawl_all = rawlimit_date(df,start)
     
     df_rawl_day,df_rawl_nit = rawlimit_daynite(df)
     df_rawl_win,df_rawl_spr,df_rawl_smr,df_rawl_fal = rawlimit_season(df)
@@ -566,13 +568,13 @@ def main(start_date,sid):
     df_summ_wek = summarize(df,lim_wek,str(summ_wek)+'min')
     df_summ_mon = summarize(df,lim_mon,str(summ_mon)+'min')
     df_summ_3mo = summarize(df,lim_3mo,str(summ_3mo)+'min')
-    df_summ_all = summarize(df,start_date,str(summ_all)+'min')
+    df_summ_all = summarize(df,start,str(summ_all)+'min')
     
     print('summaries created')
 
     # create combo plots
     try:
-        combo(df_summ_tdy,'day',1,latest,city,state,lat,long,elev)
+        combo(df_summ_tdy,'today',1,latest,city,state,lat,long,elev)
         combo(df_summ_wek,'week',1,latest,city,state,lat,long,elev)
         combo(df_summ_mon,'month',1,latest,city,state,lat,long,elev)
         #combo(df_summ_3mo,'3mo',1,latest,city,state,lat,long,elev)
@@ -582,7 +584,7 @@ def main(start_date,sid):
         
     # create windroses
     try:
-        wr(df_rawl_tdy,p_int,'day',latest,city,state,lat,long,elev)
+        wr(df_rawl_tdy,p_int,'today',latest,city,state,lat,long,elev)
         wr(df_rawl_wek,p_int,'week',latest,city,state,lat,long,elev)
         wr(df_rawl_mon,p_int,'month',latest,city,state,lat,long,elev)
         wr(df_rawl_3mo,p_int,'3mo',latest,city,state,lat,long,elev)
@@ -594,7 +596,7 @@ def main(start_date,sid):
     
     # create wind plots
     try:
-        wd(df_summ_tdy,p_int,'day',4,latest,city,state,lat,long,elev)
+        wd(df_summ_tdy,p_int,'today',4,latest,city,state,lat,long,elev)
         wd(df_summ_wek,p_int,'week',4,latest,city,state,lat,long,elev)
         wd(df_summ_mon,p_int,'month',4,latest,city,state,lat,long,elev)
         wd(df_summ_3mo,p_int,'3mo',4,latest,city,state,lat,long,elev)
@@ -604,7 +606,7 @@ def main(start_date,sid):
     
     # create plots
     try:
-        dTdts(df_summ_tdy,'day',75,latest,city,state,lat,long,elev)
+        dTdts(df_summ_tdy,'today',75,latest,city,state,lat,long,elev)
         dTdts(df_summ_wek,'week',75,latest,city,state,lat,long,elev)
         dTdts(df_summ_mon,'month',75,latest,city,state,lat,long,elev)
         #dTdts(df_summ_3mo,'3mo',75,latest,city,state,lat,long,elev)
@@ -614,7 +616,7 @@ def main(start_date,sid):
     
     # create plots
     try:
-        tdhs(df_summ_tdy,'day',75,latest,city,state,lat,long,elev)
+        tdhs(df_summ_tdy,'today',75,latest,city,state,lat,long,elev)
         #tdhs(df_summ_wek,'week',75,latest,city,state,lat,long,elev)
         #tdhs(df_summ_mon,'month',75,latest,city,state,lat,long,elev)
         #tdhs(df_summ_3mo,'3mo',75,latest,city,state,lat,long,elev)
@@ -624,7 +626,7 @@ def main(start_date,sid):
     
     # create plots
     try:
-        dTdtd(df_summ_tdy,'day',75,latest,city,state,lat,long,elev)
+        dTdtd(df_summ_tdy,'today',75,latest,city,state,lat,long,elev)
         dTdtd(df_summ_wek,'week',75,latest,city,state,lat,long,elev)
         #dTdtd(df_summ_mon,'month',75,latest,city,state,lat,long,elev)
         #dTdtd(df_summ_3mo,'3mo',75,latest,city,state,lat,long,elev)
@@ -638,4 +640,4 @@ def main(start_date,sid):
 while 1<2:
     for sid in sid_list:
         main(start_date,sid)
-    time.sleep(60*10)    
+    time.sleep(5)    
