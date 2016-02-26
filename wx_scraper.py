@@ -436,7 +436,6 @@ def main(start_date,sid):
 
     try:
         data = pd.read_csv(folder+'data/'+sid+'_data.csv',index_col=False)
-        time.sleep(5)
         data_dates = pd.DataFrame(columns=['Date'],data=pd.to_datetime(data.Time).dt.date.unique())
         recent_range = pd.DataFrame(columns=['Date'],data=pd.date_range(lim_wek, today).date)
         fetch_dates = fetch_range[~fetch_range.Date.isin(data_dates.Date)].append(recent_range).drop_duplicates()
