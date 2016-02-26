@@ -42,7 +42,7 @@ plt.rcParams.update({'font.size': 9})
 plt.rcParams.update({'savefig.dpi': 300})
 plt.rcParams.update({'savefig.facecolor': 'azure'})
 plt.rcParams.update({'savefig.edgecolor': 'k'})
-plt.rcParams.update({'savefig.format': 'jpg'})
+plt.rcParams.update({'savefig.format': 'png'})
 plt.rcParams.update({'savefig.jpeg_quality': 95})
 plt.rcParams.update({'savefig.pad_inches': 0.05})
 plt.rcParams.update({'text.color': 'k'})
@@ -581,7 +581,7 @@ def main():
         combo(df_summ_tdy,'day',1)
         combo(df_summ_wek,'week',1)
         combo(df_summ_mon,'month',1)
-        combo(df_summ_3mo,'3mo',1)
+        #combo(df_summ_3mo,'3mo',1)
         combo(df_summ_all,'all',1)
     except:
         pass
@@ -613,7 +613,7 @@ def main():
         dTdts(df_summ_tdy,'day',75)
         dTdts(df_summ_wek,'week',75)
         dTdts(df_summ_mon,'month',75)
-        dTdts(df_summ_3mo,'3mo',75)
+        #dTdts(df_summ_3mo,'3mo',75)
         dTdts(df_summ_all,'all',75)
     except:
         pass
@@ -621,9 +621,9 @@ def main():
     # create plots
     try:
         tdhs(df_summ_tdy,'day',75)
-        tdhs(df_summ_wek,'week',75)
-        tdhs(df_summ_mon,'month',75)
-        tdhs(df_summ_3mo,'3mo',75)
+        #tdhs(df_summ_wek,'week',75)
+        #tdhs(df_summ_mon,'month',75)
+        #tdhs(df_summ_3mo,'3mo',75)
         tdhs(df_summ_all,'all',75)
     except:
         pass
@@ -632,9 +632,9 @@ def main():
     try:
         dTdtd(df_summ_tdy,'day',75)
         dTdtd(df_summ_wek,'week',75)
-        dTdtd(df_summ_mon,'month',75)
-        dTdtd(df_summ_3mo,'3mo',75)
-        dTdtd(df_summ_all,'all',75)
+        #dTdtd(df_summ_mon,'month',75)
+        #dTdtd(df_summ_3mo,'3mo',75)
+        #dTdtd(df_summ_all,'all',75)
     except:
         pass
         
@@ -642,5 +642,6 @@ def main():
     
 # run main loop
 while 1<2:
+    latest = bs4.BeautifulSoup(urllib.request.urlopen(url_sd)).find('observation_time').getText()
     main()
-    time.sleep(60*5)    
+    time.sleep(60*10)    
