@@ -637,5 +637,8 @@ def main(start_date,sid):
 # run main loop
 while 1<2:
     for sid in sid_list:
-        main(start_date,sid)
+        try:
+            main(start_date,sid)
+        except:
+            print(sid+' failed')
     time.sleep(60*10)    
