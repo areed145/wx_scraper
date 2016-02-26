@@ -3,7 +3,9 @@
 
 ###Info
 http://areed145.github.io/wx_scraper
+
 http://www.adammreeder.com
+
 http://www.flickr.com/people/adamreeder
 
 ### The Reason
