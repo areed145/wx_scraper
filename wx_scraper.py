@@ -17,7 +17,7 @@ from cmath import rect, phase
 from math import radians, degrees
 from dateutil.relativedelta import relativedelta
 from sys import platform as _platform
-#from matplotlib.dates import DateFormatter
+from matplotlib.dates import DateFormatter, MonthLocator, DayLocator, HourLocator
 #import pytz
 
 # input data
@@ -113,7 +113,7 @@ def treat(df,col1,a,b,col2):
     except:
         pass
 
-def wr(df,p_int,name,latest,city,state,lat,long,elev):
+def wind_rose(df,p_int,name,latest,city,state,lat,long,elev):
     df.loc[:,'WindDir'] = np.round((df.WindDir / (360 / p_int)),0) * (360 / p_int)
     df.loc[df['WindDir'] == 360,'WindDir'] = 0
     windNA = df[df.Windspeed == 0]
@@ -154,8 +154,6 @@ def wr(df,p_int,name,latest,city,state,lat,long,elev):
     ax = plt.subplot(projection="polar")
     ax.set_axisbelow(True)
     ax.spines['polar'].set_visible(True)
-    ax.xaxis.set_ticks_position('none')
-    ax.yaxis.set_ticks_position('none')
     ax.bar(theta, df_wr.windNA, width=width_polar, color='#3366ff', edgecolor='none', bottom=0.0)
     ax.bar(theta, df_wr.wind00, width=width_polar, color='#009999', edgecolor='k', bottom=df_wr.windNA)
     ax.bar(theta, df_wr.wind01, width=width_polar, color='#00cc00', edgecolor='k', bottom=df_wr.windNA+df_wr.wind00)
@@ -171,7 +169,7 @@ def wr(df,p_int,name,latest,city,state,lat,long,elev):
     fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax.transAxes)
     fig.savefig(folder+'plots/'+sid+'_wr_'+name+'.'+plt.rcParams['savefig.format'])
 
-def wd(df,p_int,name,size,latest,city,state,lat,long,elev):
+def wind_date(df,p_int,name,size,latest,city,state,lat,long,elev,label,major,minor):
     width = 1/24/60*int(df.index.freqstr[:-1])
     df.loc[:,'WindDir'] = np.round((df.WindDir / (360 / p_int)),0) * (360 / p_int)
     df.loc[df['WindDir'] == 360,'WindDir'] = 0
@@ -194,8 +192,6 @@ def wd(df,p_int,name,size,latest,city,state,lat,long,elev):
     ax1 = plt.subplot()
     ax1.set_axisbelow(True)
     ax1.spines['top'].set_visible(True)
-    ax1.xaxis.set_ticks_position('none')
-    ax1.yaxis.set_ticks_position('none')
     ax1.bar(gustNA.index, np.zeros(len(gustNA))-height, width, edgecolor='none', color='#3366ff')
     ax1.bar(gust00.index, np.zeros(len(gust00))-height, width, edgecolor='none', color='#009999')
     ax1.bar(gust01.index, np.zeros(len(gust01))-height, width, edgecolor='none', color='#00cc00')
@@ -213,65 +209,21 @@ def wd(df,p_int,name,size,latest,city,state,lat,long,elev):
     ax2.plot_date(df.index, df.Windspeed_avg, marker = '', color='b', linestyle='-', linewidth=1)
     ylim2max = np.round(((df.WindspeedGust_max.max()+5) / 5),0) * 5
     ylim2min = -ylim2max/4
-    ax2.set_ylim([-ylim2min,ylim2max])
-    ax2.set_yticks(np.linspace(0,ylim2max,ylim2max/5))
+    ax2.set_yticks(np.linspace(0,ylim2max,(ylim2max/4)+1))
     ax2.set_ylabel('Windspeed / Gust (mph)')
     ax1.plot_date(df.index, df.WindDir, 'rx', ms=size)
     ax1.set_yticks(np.linspace(0,360,(p_int/4)+1))
+    ax2.set_ylim([ylim2min,ylim2max])
     ax1.set_ylabel('Wind Direction (deg)')
     ax1.set_ylim([-height,360])
-    ax1.grid(b=True, which='both', color='k',linestyle='-')
+    ax1.xaxis.set_major_locator(major)
+    ax1.xaxis.set_major_formatter(label)
+    ax1.xaxis.set_minor_locator(minor)
+    ax1.grid(b=True, which='major', color='k',linestyle='-')
     fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax1.transAxes)
     fig.savefig(folder+'plots/'+sid+'_wd_'+name+'.'+plt.rcParams['savefig.format'])
 
-def tdhd(df,name,lw,latest,city,state,lat,long,elev):
-    #formatter = DateFormatter('%H:%M', tz=pytz.timezone('US/Pacific'))
-    plt.close("all")
-    fig = plt.figure()
-    fig.set_size_inches(7.5, 5)
-    plt.title(sid+' - '+city+', '+state+': '+str(lat)+', '+str(long)+', '+str(elev)+'ft\nTemp, Dewpoint, Humidity - '+name)
-    ax1 = plt.subplot()
-    ax1.set_axisbelow(True)
-    ax1.spines['top'].set_visible(True)
-    ax1.xaxis.set_ticks_position('none')
-    ax1.yaxis.set_ticks_position('none')
-    ax1.plot_date(df.index, df.Dewpoint_avg, marker = '', color='b', linestyle='-', linewidth=lw)
-    ax1.fill_between(df.index, df.Dewpoint_min, df.Dewpoint_max, facecolor='b', alpha=.2)
-    ax1.plot_date(df.index, df.Temp_avg, marker = '', color='r', linestyle='-', linewidth=lw)
-    ax1.fill_between(df.index, df.Temp_min, df.Temp_max, facecolor='r', alpha=.2)
-    ax2 = ax1.twinx()
-    ax2.plot_date(df.index, df.Humidity_avg, marker = '', color='g', linestyle='-', linewidth=lw)
-    ax1.set_xlabel('Date')
-    ax1.set_ylabel('Temp/Dewpoint (degF)')
-    ax2.set_ylabel('Humidity (%)')
-    ax1.grid(b=True, which='both', color='k',linestyle='-')
-    fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax1.transAxes)
-    fig.savefig(folder+'plots/'+sid+'_tdhd_'+name+'.'+plt.rcParams['savefig.format'])
-
-def pppd(df,name,lw,latest,city,state,lat,long,elev):
-    #formatter = DateFormatter('%H:%M', tz=pytz.timezone('US/Pacific'))
-    plt.close("all")
-    fig = plt.figure()
-    fig.set_size_inches(7.5, 5)
-    plt.title(sid+' - '+city+', '+state+': '+str(lat)+', '+str(long)+', '+str(elev)+'ft\nPressure + Precipiation - '+name)
-    ax1 = plt.subplot()
-    ax1.set_axisbelow(True)
-    ax1.spines['top'].set_visible(True)
-    ax1.xaxis.set_ticks_position('none')
-    ax1.yaxis.set_ticks_position('none')
-    ax1.plot_date(df.index, df.Pressure_avg, marker = '', color='y', linestyle='-', linewidth=lw)
-    ax2 = ax1.twinx()
-    ax2.plot_date(df.index, df.PrecipHourly_avg, marker = '', color='c', linestyle='-', linewidth=lw)
-    ax2.plot_date(df.index, df.PrecipDaily_avg, marker = '', color='b', linestyle='-', linewidth=lw)
-    ax1.set_xlabel('Date')
-    ax1.set_ylabel('Pressure (inHg)')
-    ax2.set_ylabel('Precipitation (in)')
-    ax1.grid(b=True, which='both', color='k',linestyle='-')
-    fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax1.transAxes)
-    fig.savefig(folder+'plots/'+sid+'_pppd_'+name+'.'+plt.rcParams['savefig.format'])
-
-def dTdts(df,name,size,latest,city,state,lat,long,elev):
-    #formatter = DateFormatter('%H:%M', tz=pytz.timezone('US/Pacific'))
+def dTdt_solar_temp(df,name,size,latest,city,state,lat,long,elev):
     plt.close("all")
     fig = plt.figure()
     fig.set_size_inches(7.5, 5)
@@ -279,8 +231,6 @@ def dTdts(df,name,size,latest,city,state,lat,long,elev):
     ax = plt.subplot()
     ax.set_axisbelow(True)
     ax.spines['top'].set_visible(True)
-    ax.xaxis.set_ticks_position('none')
-    ax.yaxis.set_ticks_position('none')
     axcb = ax.scatter(df.SolarRadiation_avg, df.dTdt_avg, c=df.Temp_avg, vmin=-20, vmax=120, s=size, cmap=plt.cm.jet, alpha=0.75, lw = 0)
     ax.set_xlabel('Solar Radiation (W/m^2)')
     ax.set_ylabel('dT/dt (degF/hr)')
@@ -290,8 +240,7 @@ def dTdts(df,name,size,latest,city,state,lat,long,elev):
     fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax.transAxes)
     fig.savefig(folder+'plots/'+sid+'_dTdts_'+name+'.'+plt.rcParams['savefig.format'])
 
-def dTdtd(df,name,size,latest,city,state,lat,long,elev):
-    #formatter = DateFormatter('%H:%M', tz=pytz.timezone('US/Pacific'))
+def dTdt_date(df,name,size,latest,city,state,lat,long,elev,label,major,minor):
     plt.close("all")
     fig = plt.figure()
     fig.set_size_inches(7.5, 5)
@@ -299,21 +248,21 @@ def dTdtd(df,name,size,latest,city,state,lat,long,elev):
     ax = plt.subplot()
     ax.set_axisbelow(True)
     ax.spines['top'].set_visible(True)
-    ax.xaxis.set_ticks_position('none')
-    ax.yaxis.set_ticks_position('none')
     v = max(abs(df.dTdt_avg.max()),abs(df.dTdt_avg.min()))
     axcb = ax.scatter(df.index, df.Temp_avg, c=df.dTdt_avg, s=size, cmap=plt.cm.jet, vmin=-v, vmax=v, alpha=0.75, lw = 0)
     ax.set_xlim([df.index.min(),df.index.max()])
     ax.set_xlabel('Date')
     ax.set_ylabel('Temp (degF)')
-    ax.grid(b=True, which='both', color='k',linestyle='-')
+    ax.xaxis.set_major_locator(major)
+    ax.xaxis.set_major_formatter(label)
+    ax.xaxis.set_minor_locator(minor)
+    ax.grid(b=True, which='major', color='k',linestyle='-')
     cbar = plt.colorbar(axcb)
     cbar.set_label('dT/dt (degF/hr)')
     fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax.transAxes)
     fig.savefig(folder+'plots/'+sid+'_dTdtd_'+name+'.'+plt.rcParams['savefig.format'])
 
-def tdhs(df,name,size,latest,city,state,lat,long,elev):
-    #formatter = DateFormatter('%H:%M', tz=pytz.timezone('US/Pacific'))
+def temp_dew_hum(df,name,size,latest,city,state,lat,long,elev):
     plt.close("all")
     fig = plt.figure()
     fig.set_size_inches(7.5, 5)
@@ -321,8 +270,6 @@ def tdhs(df,name,size,latest,city,state,lat,long,elev):
     ax = plt.subplot()
     ax.set_axisbelow(True)
     ax.spines['top'].set_visible(True)
-    ax.xaxis.set_ticks_position('none')
-    ax.yaxis.set_ticks_position('none')
     axcb = ax.scatter(df.Dewpoint_avg, df.Temp_avg, c=df.Humidity_avg, s=size, cmap=plt.cm.winter, vmin=0, vmax=100, alpha=0.75, lw = 0)
     ax.set_xlabel('Dewpoint (degF)')
     ax.set_ylabel('Temp (degF)')
@@ -332,25 +279,24 @@ def tdhs(df,name,size,latest,city,state,lat,long,elev):
     fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax.transAxes)
     fig.savefig(folder+'plots/'+sid+'_tdhs_'+name+'.'+plt.rcParams['savefig.format'])
 
-def combo(df,name,lw,latest,city,state,lat,long,elev):
-    #formatter = DateFormatter('%H:%M', tz=pytz.timezone('US/Pacific'))
+def combo(df,name,lw,latest,city,state,lat,long,elev,label,major,minor):
     plt.close("all")
     fig = plt.figure()
     fig.set_size_inches(7.5, 9)
-    fig.autofmt_xdate()
     fig.suptitle(sid+' - '+city+', '+state+'\n'+str(lat)+', '+str(long)+', '+str(elev)+'ft\nCombo Plot - '+name)
     ax1 = plt.subplot(5,1,1)
     ax1.set_axisbelow(True)
     ax1.spines['top'].set_visible(True)
-    ax1.xaxis.set_ticks_position('none')
-    ax1.yaxis.set_ticks_position('none')
     ax1.plot_date(df.index, df.Dewpoint_avg, marker = '', color='b', linestyle='-', linewidth=lw)
     ax1.fill_between(df.index, df.Dewpoint_min, df.Dewpoint_max, facecolor='b', alpha=.2)
     ax1.plot_date(df.index, df.Temp_avg, marker = '', color='r', linestyle='-', linewidth=lw)
     ax1.fill_between(df.index, df.Temp_min, df.Temp_max, facecolor='r', alpha=.2)
     ax1.set_ylabel('Temp/Dewpoint (degF)')
     ax1.set_ylim([0,120])
-    ax1.grid(b=True, which='both', color='k',linestyle='-')
+    ax1.xaxis.set_major_locator(major)
+    ax1.xaxis.set_major_formatter(label)
+    ax1.xaxis.set_minor_locator(minor)
+    ax1.grid(b=True, which='major', color='k',linestyle='-')
     ax2 = plt.subplot(5,1,2)
     ax2.plot_date(df.index, df.Humidity_avg, marker = '', color='g', linestyle='-', linewidth=lw)
     ax2.fill_between(df.index, df.Humidity_min, df.Humidity_max, facecolor='g', alpha=.2)
@@ -360,8 +306,11 @@ def combo(df,name,lw,latest,city,state,lat,long,elev):
     ax22.plot_date(df.index, df.PrecipDaily_max, marker = '', color='b', linestyle='-', linewidth=lw)
     ax22.set_ylabel('Precipitation (in)')
     ax2.set_ylim([0,100])
-    ax22.set_ylim([0,2])
-    ax2.grid(b=True, which='both', color='k',linestyle='-')
+    ax22.set_ylim([0,df.PrecipDaily_max.max()])
+    ax2.xaxis.set_major_locator(major)
+    ax2.xaxis.set_major_formatter(label)
+    ax2.xaxis.set_minor_locator(minor)
+    ax2.grid(b=True, which='major', color='k',linestyle='-')
     ax3 = plt.subplot(5,1,3)
     ax3.plot_date(df.index, df.Pressure_avg, marker = '', color='y', linestyle='-', linewidth=lw)
     ax3.fill_between(df.index, df.Pressure_min, df.Pressure_max, facecolor='y', alpha=.2)
@@ -370,7 +319,10 @@ def combo(df,name,lw,latest,city,state,lat,long,elev):
     ax32.plot_date(df.index, df.CloudBase_avg, marker = '', color='c', linestyle='-', linewidth=lw)
     ax32.fill_between(df.index, df.CloudBase_min, df.CloudBase_max, facecolor='c', alpha=.2)
     ax32.set_ylabel('Minimum Cloudbase (ft)')
-    ax3.grid(b=True, which='both', color='k',linestyle='-')
+    ax3.xaxis.set_major_locator(major)
+    ax3.xaxis.set_major_formatter(label)
+    ax3.xaxis.set_minor_locator(minor)
+    ax3.grid(b=True, which='major', color='k',linestyle='-')
     ax4= plt.subplot(5,1,4)
     ax4.plot_date(df.index, df.dTdt_avg, marker = '', color='r', linestyle='-', linewidth=lw)
     ax4.fill_between(df.index, df.dTdt_min, df.dTdt_max, facecolor='r', alpha=.2)
@@ -382,7 +334,10 @@ def combo(df,name,lw,latest,city,state,lat,long,elev):
         pass
     ax4.set_ylabel('dT/dt (degF/hr)')
     ax42.set_ylabel('Solar Radiation (W/m^2)')
-    ax4.grid(b=True, which='both', color='k',linestyle='-')
+    ax4.xaxis.set_major_locator(major)
+    ax4.xaxis.set_major_formatter(label)
+    ax4.xaxis.set_minor_locator(minor)
+    ax4.grid(b=True, which='major', color='k',linestyle='-')
     ax5= plt.subplot(5,1,5)
     ax5.plot_date(df.index, df.WindDir, 'rx', ms=5*lw)
     ax5.set_yticks(np.linspace(0,360,(p_int/4)+1))
@@ -391,7 +346,11 @@ def combo(df,name,lw,latest,city,state,lat,long,elev):
     ax52.plot_date(df.index, df.WindspeedGust_max, marker = '', color='g', linestyle='-', linewidth=lw)
     ax52.plot_date(df.index, df.Windspeed_avg, marker = '', color='b', linestyle='-', linewidth=lw)
     ax52.set_ylabel('Windspeed / Gust (mph)')
-    ax5.grid(b=True, which='both', color='k',linestyle='-')
+    ax5.set_ylim([0,360])
+    ax5.xaxis.set_major_locator(major)
+    ax5.xaxis.set_major_formatter(label)
+    ax5.xaxis.set_minor_locator(minor)
+    ax5.grid(b=True, which='major', color='k',linestyle='-')
     ax5.set_xlabel('Date')
     fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax5.transAxes)
     fig.savefig(folder+'plots/'+sid+'_combo_'+name+'.'+plt.rcParams['savefig.format'])
@@ -449,7 +408,6 @@ def main(start_date,sid):
             month_str = '0'+str(month)
         else:
             month_str = str(month)
-
         if day < 10:
             day_str = '0'+str(day)
         else:
@@ -540,65 +498,82 @@ def main(start_date,sid):
     df_summ_all = summarize(df,start_date,str(summ_all)+'min')
     print('summaries created')
 
+    # create x-axis date labels
+    label_tdy = DateFormatter("%H:%M")
+    label_wek = DateFormatter("%m/%d")
+    label_mon = DateFormatter("%m/%d")
+    label_3mo = DateFormatter("%m/%y")
+    label_all = DateFormatter("%m/%y")
+    maj_tdy = HourLocator(interval = 3)
+    maj_wek = DayLocator()
+    maj_mon = DayLocator(interval = 7)
+    maj_3mo = MonthLocator()
+    maj_all = MonthLocator()
+    min_tdy = HourLocator()
+    min_wek = HourLocator()
+    min_mon = DayLocator()
+    min_3mo = DayLocator()
+    min_all = DayLocator()
+
     # create combo plots
     try:
-        combo(df_summ_tdy,'day',1,latest,city,state,lat,long,elev)
-        combo(df_summ_wek,'week',1,latest,city,state,lat,long,elev)
-        combo(df_summ_mon,'month',1,latest,city,state,lat,long,elev)
-        #combo(df_summ_3mo,'3mo',1,latest,city,state,lat,long,elev)
-        combo(df_summ_all,'all',1,latest,city,state,lat,long,elev)
+        combo(df_summ_tdy,'day',1,latest,city,state,lat,long,elev,label_tdy,maj_tdy,min_tdy)
+        combo(df_summ_wek,'week',1,latest,city,state,lat,long,elev,label_wek,maj_wek,min_wek)
+        combo(df_summ_mon,'month',1,latest,city,state,lat,long,elev,label_mon,maj_mon,min_mon)
+        #combo(df_summ_3mo,'3mo',1,latest,city,state,lat,long,elev,label_3mo,maj_3mo,min_3mo)
+        combo(df_summ_all,'all',1,latest,city,state,lat,long,elev,label_all,maj_all,min_all)
     except:
         pass
 
     # create windroses
     try:
-        wr(df_rawl_tdy,p_int,'day',latest,city,state,lat,long,elev)
-        wr(df_rawl_wek,p_int,'week',latest,city,state,lat,long,elev)
-        wr(df_rawl_mon,p_int,'month',latest,city,state,lat,long,elev)
-        wr(df_rawl_3mo,p_int,'3mo',latest,city,state,lat,long,elev)
-        wr(df_rawl_all,p_int,'all',latest,city,state,lat,long,elev)
-        wr(df_rawl_day,p_int,'day',latest,city,state,lat,long,elev)
-        wr(df_rawl_nit,p_int,'night',latest,city,state,lat,long,elev)
+        wind_rose(df_rawl_tdy,p_int,'day',latest,city,state,lat,long,elev)
+        wind_rose(df_rawl_wek,p_int,'week',latest,city,state,lat,long,elev)
+        wind_rose(df_rawl_mon,p_int,'month',latest,city,state,lat,long,elev)
+        wind_rose(df_rawl_3mo,p_int,'3mo',latest,city,state,lat,long,elev)
+        wind_rose(df_rawl_all,p_int,'all',latest,city,state,lat,long,elev)
+        wind_rose(df_rawl_day,p_int,'day',latest,city,state,lat,long,elev)
+        wind_rose(df_rawl_nit,p_int,'night',latest,city,state,lat,long,elev)
     except:
         pass
 
     # create wind plots
     try:
-        wd(df_summ_tdy,p_int,'day',4,latest,city,state,lat,long,elev)
-        wd(df_summ_wek,p_int,'week',4,latest,city,state,lat,long,elev)
-        wd(df_summ_mon,p_int,'month',4,latest,city,state,lat,long,elev)
-        wd(df_summ_3mo,p_int,'3mo',4,latest,city,state,lat,long,elev)
-        wd(df_summ_all,p_int,'all',4,latest,city,state,lat,long,elev)
+        wind_date(df_summ_tdy,p_int,'day',4,latest,city,state,lat,long,elev,label_tdy,maj_tdy,min_tdy)
+        wind_date(df_summ_wek,p_int,'week',4,latest,city,state,lat,long,elev,label_wek,maj_wek,min_wek)
+        wind_date(df_summ_mon,p_int,'month',4,latest,city,state,lat,long,elev,label_mon,maj_mon,min_mon)
+        wind_date(df_summ_3mo,p_int,'3mo',4,latest,city,state,lat,long,elev,label_3mo,maj_3mo,min_3mo)
+        wind_date(df_summ_all,p_int,'all',4,latest,city,state,lat,long,elev,label_all,maj_all,min_all)
     except:
         pass
 
     # create plots
     try:
-        dTdts(df_summ_tdy,'day',75,latest,city,state,lat,long,elev)
-        dTdts(df_summ_wek,'week',75,latest,city,state,lat,long,elev)
-        dTdts(df_summ_mon,'month',75,latest,city,state,lat,long,elev)
-        #dTdts(df_summ_3mo,'3mo',75,latest,city,state,lat,long,elev)
-        dTdts(df_summ_all,'all',75,latest,city,state,lat,long,elev)
+        dTdt_solar_temp(df_summ_tdy,'day',75,latest,city,state,lat,long,elev)
+        dTdt_solar_temp(df_summ_wek,'week',75,latest,city,state,lat,long,elev)
+        dTdt_solar_temp(df_summ_mon,'month',75,latest,city,state,lat,long,elev)
+        #dTdt_solar_temp(df_summ_3mo,'3mo',75,latest,city,state,lat,long,elev)
+        dTdt_solar_temp(df_summ_all,'all',75,latest,city,state,lat,long,elev)
     except:
         pass
 
     # create plots
     try:
-        tdhs(df_summ_tdy,'day',75,latest,city,state,lat,long,elev)
-        #tdhs(df_summ_wek,'week',75,latest,city,state,lat,long,elev)
-        #tdhs(df_summ_mon,'month',75,latest,city,state,lat,long,elev)
-        #tdhs(df_summ_3mo,'3mo',75,latest,city,state,lat,long,elev)
-        tdhs(df_summ_all,'all',75,latest,city,state,lat,long,elev)
+        temp_dew_hum(df_summ_tdy,'day',75,latest,city,state,lat,long,elev)
+        #temp_dew_hum(df_summ_wek,'week',75,latest,city,state,lat,long,elev)
+        #temp_dew_hum(df_summ_mon,'month',75,latest,city,state,lat,long,elev)
+        #temp_dew_hum(df_summ_3mo,'3mo',75,latest,city,state,lat,long,elev)
+        temp_dew_hum(df_summ_all,'all',75,latest,city,state,lat,long,elev)
     except:
         pass
 
     # create plots
     try:
-        dTdtd(df_summ_tdy,'day',75,latest,city,state,lat,long,elev)
-        dTdtd(df_summ_wek,'week',75,latest,city,state,lat,long,elev)
-        #dTdtd(df_summ_mon,'month',75,latest,city,state,lat,long,elev)
-        #dTdtd(df_summ_3mo,'3mo',75,latest,city,state,lat,long,elev)
-        #dTdtd(df_summ_all,'all',75,latest,city,state,lat,long,elev)
+        dTdt_date(df_summ_tdy,'day',75,latest,city,state,lat,long,elev,label_tdy,maj_tdy,min_tdy)
+        dTdt_date(df_summ_wek,'week',75,latest,city,state,lat,long,elev,label_wek,maj_wek,min_wek)
+        #dTdt_date(df_summ_mon,'month',75,latest,city,state,lat,long,elev)
+        #dTdt_date(df_summ_3mo,'3mo',75,latest,city,state,lat,long,elev)
+        #dTdt_date(df_summ_all,'all',75,latest,city,state,lat,long,elev)
     except:
         pass
 
