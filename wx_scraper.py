@@ -18,10 +18,8 @@ from math import radians, degrees
 from dateutil.relativedelta import relativedelta
 from sys import platform as _platform
 from matplotlib.dates import DateFormatter, MonthLocator, DayLocator, HourLocator
-#import pytz
 
 # input data
-<<<<<<< HEAD:wx_scraper_new.py
 start_date = '2015-01-01'
 sid_list = ['KCABAKER38','KCAINYOK7','KCASANTA706','KTXDALLA233','MAU562']
 mac_folder = '/Users/areed145/Dropbox/GitHub/wx_scraper/'
@@ -35,7 +33,7 @@ summ_mon = 120
 summ_3mo = 360
 summ_all = 1440
 save_archive = False
-=======
+
 start_date = '2015-02-26' # date to start pulling data
 sid_list = ['KCABAKER38','KCABAKER8'] # list of stations to pull
 mac_folder = '/Users/areed145/Dropbox/GitHub/wx_scraper/' # folder if on Mac
@@ -54,7 +52,6 @@ sleep_time = 10 # minutes to sleep before pulling stations again
 summ_mon = summ_mon * 60
 summ_3mo = summ_3mo * 60
 summ_all = summ_all * 60
->>>>>>> origin/master:wx_scraper.py
 
 # update plot defaults
 plt.rcParams.update({'font.size': 9})
@@ -108,10 +105,6 @@ def rawlimit_daynite(df):
     df_nit = df[~df.Time.isin(df_day.Time)]
     df_day = df_day.reindex_axis(sorted(df_day.columns), axis=1)
     df_nit = df_nit.reindex_axis(sorted(df_nit.columns), axis=1)
-<<<<<<< HEAD:wx_scraper_new.py
-
-=======
->>>>>>> origin/master:wx_scraper.py
     return df_day,df_nit
 
 def rawlimit_season(df):
@@ -120,18 +113,10 @@ def rawlimit_season(df):
     df_fal = df[(df.Time.map(lambda x:x.month) >= 9) & (df.Time.map(lambda x:x.month) <= 11)]
     df_not = df[(df.Time.map(lambda x:x.month) >= 3) & (df.Time.map(lambda x:x.month) <= 11)]
     df_win = df[~df.Time.isin(df_not.Time)]
-<<<<<<< HEAD:wx_scraper_new.py
-
-=======
->>>>>>> origin/master:wx_scraper.py
     df_win = df_win.reindex_axis(sorted(df_win.columns), axis=1)
     df_spr = df_spr.reindex_axis(sorted(df_spr.columns), axis=1)
     df_smr = df_smr.reindex_axis(sorted(df_smr.columns), axis=1)
     df_fal = df_fal.reindex_axis(sorted(df_fal.columns), axis=1)
-<<<<<<< HEAD:wx_scraper_new.py
-
-=======
->>>>>>> origin/master:wx_scraper.py
     return df_win,df_spr,df_smr,df_fal
 
 def treat(df,col1,a,b,col2):
@@ -155,40 +140,27 @@ def wind_rose(df,p_int,name,latest,city,state,lat,long,elev):
     gb_wind02 = wind02.groupby(['WindDir'])['Windspeed'].count().reset_index().rename(columns={'Windspeed': 'wind02'})
     gb_wind05 = wind05.groupby(['WindDir'])['Windspeed'].count().reset_index().rename(columns={'Windspeed': 'wind05'})
     gb_wind10 = wind10.groupby(['WindDir'])['Windspeed'].count().reset_index().rename(columns={'Windspeed': 'wind10'})
-
     df_deg = pd.DataFrame(data = np.linspace(0, 360, p_int, endpoint=False), columns = ['WindDir'])
-
-    df_wr = df_deg.merge(gb_wind00, on=['WindDir'], how='left')\
+	df_wr = df_deg.merge(gb_wind00, on=['WindDir'], how='left')\
     .merge(gb_wind01, on=['WindDir'], how='left')\
     .merge(gb_wind02, on=['WindDir'], how='left')\
     .merge(gb_wind05, on=['WindDir'], how='left')\
     .merge(gb_wind10, on=['WindDir'], how='left')
-<<<<<<< HEAD:wx_scraper_new.py
-
-    df_wr = df_wr.fillna(0)
-    df_wr = df_wr.sort(columns=['WindDir'], axis=0, ascending=True)
-
-    total = len(windNA)+len(wind00)+len(wind01)+len(wind02)+len(wind05)+len(wind10)
-
-=======
     df_wr = df_wr.fillna(0)
     df_wr = df_wr.sort(columns=['WindDir'], axis=0, ascending=True)
     total = len(windNA)+len(wind00)+len(wind01)+len(wind02)+len(wind05)+len(wind10)
->>>>>>> origin/master:wx_scraper.py
+    df_wr = df_wr.fillna(0)
+    df_wr = df_wr.sort(columns=['WindDir'], axis=0, ascending=True)
+    total = len(windNA)+len(wind00)+len(wind01)+len(wind02)+len(wind05)+len(wind10)
     df_wr['windNA'] = len(windNA)/total*100/p_int
     df_wr.wind00 = df_wr.wind00/total*100
     df_wr.wind01 = df_wr.wind01/total*100
     df_wr.wind02 = df_wr.wind02/total*100
     df_wr.wind05 = df_wr.wind05/total*100
     df_wr.wind10 = df_wr.wind10/total*100
-<<<<<<< HEAD:wx_scraper_new.py
-
-=======
->>>>>>> origin/master:wx_scraper.py
     theta = np.linspace(0.0, 2 * np.pi, p_int, endpoint=False)
     width_polar = 2 * np.pi / p_int
     theta = theta - (width_polar/2)
-
     plt.close("all")
     fig = plt.figure()
     fig.set_size_inches(4.5, 4.5)
@@ -214,30 +186,18 @@ def wind_date(df,p_int,name,size,latest,city,state,lat,long,elev,label,major,min
     width = 1/24/60*int(df.index.freqstr[:-1])
     df.loc[:,'WindDir'] = np.round((df.WindDir / (360 / p_int)),0) * (360 / p_int)
     df.loc[df['WindDir'] == 360,'WindDir'] = 0
-<<<<<<< HEAD:wx_scraper_new.py
-
-=======
->>>>>>> origin/master:wx_scraper.py
     windNA = df[df.Windspeed_avg == 0]
     wind00 = df[(df.Windspeed_avg > 0) & (df.Windspeed_avg <= 1)]
     wind01 = df[(df.Windspeed_avg > 1) & (df.Windspeed_avg <= 2)]
     wind02 = df[(df.Windspeed_avg > 2) & (df.Windspeed_avg <= 5)]
     wind05 = df[(df.Windspeed_avg > 5) & (df.Windspeed_avg <= 10)]
     wind10 = df[df.Windspeed_avg >= 10]
-<<<<<<< HEAD:wx_scraper_new.py
-
-=======
->>>>>>> origin/master:wx_scraper.py
     gustNA = df[df.WindspeedGust_max == 0]
     gust00 = df[(df.WindspeedGust_max > 0) & (df.WindspeedGust_max <= 1)]
     gust01 = df[(df.WindspeedGust_max > 1) & (df.WindspeedGust_max <= 2)]
     gust02 = df[(df.WindspeedGust_max > 2) & (df.WindspeedGust_max <= 5)]
     gust05 = df[(df.WindspeedGust_max > 5) & (df.WindspeedGust_max <= 10)]
     gust10 = df[df.WindspeedGust_max >= 10]
-<<<<<<< HEAD:wx_scraper_new.py
-
-=======
->>>>>>> origin/master:wx_scraper.py
     plt.close("all")
     fig = plt.figure()
     fig.set_size_inches(7.5, 5)
@@ -276,10 +236,8 @@ def wind_date(df,p_int,name,size,latest,city,state,lat,long,elev,label,major,min
     fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax1.transAxes)
     fig.savefig(folder+'plots/'+sid+'_wd_'+name+'.'+plt.rcParams['savefig.format'])
 
-<<<<<<< HEAD:wx_scraper_new.py
 def tdhd(df,name,lw,latest,city,state,lat,long,elev):
-    #formatter = DateFormatter('%H:%M', tz=pytz.timezone('US/Pacific'))
-    plt.close("all")
+	plt.close("all")
     fig = plt.figure()
     fig.set_size_inches(7.5, 5)
     plt.title(sid+' - '+city+', '+state+': '+str(lat)+', '+str(long)+', '+str(elev)+'ft\nTemp, Dewpoint, Humidity - '+name)
@@ -302,7 +260,6 @@ def tdhd(df,name,lw,latest,city,state,lat,long,elev):
     fig.savefig(folder+'plots/'+sid+'_tdhd_'+name+'.'+plt.rcParams['savefig.format'])
 
 def pppd(df,name,lw,latest,city,state,lat,long,elev):
-    #formatter = DateFormatter('%H:%M', tz=pytz.timezone('US/Pacific'))
     plt.close("all")
     fig = plt.figure()
     fig.set_size_inches(7.5, 5)
@@ -323,11 +280,7 @@ def pppd(df,name,lw,latest,city,state,lat,long,elev):
     fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax1.transAxes)
     fig.savefig(folder+'plots/'+sid+'_pppd_'+name+'.'+plt.rcParams['savefig.format'])
 
-def dTdts(df,name,size,latest,city,state,lat,long,elev):
-    #formatter = DateFormatter('%H:%M', tz=pytz.timezone('US/Pacific'))
-=======
 def dTdt_solar_temp(df,name,size,latest,city,state,lat,long,elev):
->>>>>>> origin/master:wx_scraper.py
     plt.close("all")
     fig = plt.figure()
     fig.set_size_inches(7.5, 5)
@@ -344,12 +297,7 @@ def dTdt_solar_temp(df,name,size,latest,city,state,lat,long,elev):
     fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax.transAxes)
     fig.savefig(folder+'plots/'+sid+'_dTdts_'+name+'.'+plt.rcParams['savefig.format'])
 
-<<<<<<< HEAD:wx_scraper_new.py
-def dTdtd(df,name,size,latest,city,state,lat,long,elev):
-    #formatter = DateFormatter('%H:%M', tz=pytz.timezone('US/Pacific'))
-=======
 def dTdt_date(df,name,size,latest,city,state,lat,long,elev,label,major,minor):
->>>>>>> origin/master:wx_scraper.py
     plt.close("all")
     fig = plt.figure()
     fig.set_size_inches(7.5, 5)
@@ -388,12 +336,7 @@ def temp_dew_hum(df,name,size,latest,city,state,lat,long,elev):
     fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax.transAxes)
     fig.savefig(folder+'plots/'+sid+'_tdhs_'+name+'.'+plt.rcParams['savefig.format'])
 
-<<<<<<< HEAD:wx_scraper_new.py
-def combo(df,name,lw,latest,city,state,lat,long,elev):
-    #formatter = DateFormatter('%H:%M', tz=pytz.timezone('US/Pacific'))
-=======
 def combo(df,name,lw,latest,city,state,lat,long,elev,label,major,minor):
->>>>>>> origin/master:wx_scraper.py
     plt.close("all")
     fig = plt.figure()
     fig.set_size_inches(7.5, 9)
@@ -407,15 +350,10 @@ def combo(df,name,lw,latest,city,state,lat,long,elev,label,major,minor):
     ax1.fill_between(df.index, df.Temp_min, df.Temp_max, facecolor='r', alpha=.2)
     ax1.set_ylabel('Temp/Dewpoint (degF)')
     ax1.set_ylim([0,120])
-<<<<<<< HEAD:wx_scraper_new.py
-    ax1.grid(b=True, which='both', color='k',linestyle='-')
-
-=======
     ax1.xaxis.set_major_locator(major)
     ax1.xaxis.set_major_formatter(label)
     ax1.xaxis.set_minor_locator(minor)
     ax1.grid(b=True, which='major', color='k',linestyle='-')
->>>>>>> origin/master:wx_scraper.py
     ax2 = plt.subplot(5,1,2)
     ax2.plot_date(df.index, df.Humidity_avg, marker = '', color='g', linestyle='-', linewidth=lw)
     ax2.fill_between(df.index, df.Humidity_min, df.Humidity_max, facecolor='g', alpha=.2)
@@ -425,17 +363,11 @@ def combo(df,name,lw,latest,city,state,lat,long,elev,label,major,minor):
     ax22.plot_date(df.index, df.PrecipDaily_max, marker = '', color='b', linestyle='-', linewidth=lw)
     ax22.set_ylabel('Precipitation (in)')
     ax2.set_ylim([0,100])
-<<<<<<< HEAD:wx_scraper_new.py
-    ax22.set_ylim([0,2])
-    ax2.grid(b=True, which='both', color='k',linestyle='-')
-
-=======
     ax22.set_ylim([0,df.PrecipDaily_max.max()])
     ax2.xaxis.set_major_locator(major)
     ax2.xaxis.set_major_formatter(label)
     ax2.xaxis.set_minor_locator(minor)
     ax2.grid(b=True, which='major', color='k',linestyle='-')
->>>>>>> origin/master:wx_scraper.py
     ax3 = plt.subplot(5,1,3)
     ax3.plot_date(df.index, df.Pressure_avg, marker = '', color='y', linestyle='-', linewidth=lw)
     ax3.fill_between(df.index, df.Pressure_min, df.Pressure_max, facecolor='y', alpha=.2)
@@ -444,15 +376,10 @@ def combo(df,name,lw,latest,city,state,lat,long,elev,label,major,minor):
     ax32.plot_date(df.index, df.CloudBase_avg, marker = '', color='c', linestyle='-', linewidth=lw)
     ax32.fill_between(df.index, df.CloudBase_min, df.CloudBase_max, facecolor='c', alpha=.2)
     ax32.set_ylabel('Minimum Cloudbase (ft)')
-<<<<<<< HEAD:wx_scraper_new.py
-    ax3.grid(b=True, which='both', color='k',linestyle='-')
-
-=======
     ax3.xaxis.set_major_locator(major)
     ax3.xaxis.set_major_formatter(label)
     ax3.xaxis.set_minor_locator(minor)
     ax3.grid(b=True, which='major', color='k',linestyle='-')
->>>>>>> origin/master:wx_scraper.py
     ax4= plt.subplot(5,1,4)
     ax4.plot_date(df.index, df.dTdt_avg, marker = '', color='r', linestyle='-', linewidth=lw)
     ax4.fill_between(df.index, df.dTdt_min, df.dTdt_max, facecolor='r', alpha=.2)
@@ -464,15 +391,10 @@ def combo(df,name,lw,latest,city,state,lat,long,elev,label,major,minor):
         pass
     ax4.set_ylabel('dT/dt (degF/hr)')
     ax42.set_ylabel('Solar Radiation (W/m^2)')
-<<<<<<< HEAD:wx_scraper_new.py
-    ax4.grid(b=True, which='both', color='k',linestyle='-')
-
-=======
     ax4.xaxis.set_major_locator(major)
     ax4.xaxis.set_major_formatter(label)
     ax4.xaxis.set_minor_locator(minor)
     ax4.grid(b=True, which='major', color='k',linestyle='-')
->>>>>>> origin/master:wx_scraper.py
     ax5= plt.subplot(5,1,5)
     ax5.plot_date(df.index, df.WindDir, 'rx', ms=5*lw)
     ax5.set_yticks(np.linspace(0,360,(p_int/4)+1))
@@ -487,20 +409,11 @@ def combo(df,name,lw,latest,city,state,lat,long,elev,label,major,minor):
     ax5.xaxis.set_minor_locator(minor)
     ax5.grid(b=True, which='major', color='k',linestyle='-')
     ax5.set_xlabel('Date')
-<<<<<<< HEAD:wx_scraper_new.py
-
-=======
->>>>>>> origin/master:wx_scraper.py
     fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax5.transAxes)
     fig.savefig(folder+'plots/'+sid+'_combo_'+name+'.'+plt.rcParams['savefig.format'])
 
 def main(start_date,sid):
-<<<<<<< HEAD:wx_scraper_new.py
-
-    # station data
-=======
-    # get station data
->>>>>>> origin/master:wx_scraper.py
+	# get station data
     url_sd = 'http://api.wunderground.com/weatherstation/WXCurrentObXML.asp?ID='+sid
     soup_sd = bs4.BeautifulSoup(urllib.request.urlopen(url_sd))
     #full = soup_sd.find('full').getText()
@@ -518,14 +431,7 @@ def main(start_date,sid):
     lim_mon = today+relativedelta(months=-1)
     lim_3mo = today+relativedelta(months=-3)
     lim_wek = today+relativedelta(days=-7)
-<<<<<<< HEAD:wx_scraper_new.py
-
-    fetch_range = pd.DataFrame()
-    fetch_range['Date'] = pd.DataFrame(columns=['Date'],data=pd.date_range(start, today)).Date.dt.date
-
-=======
     fetch_range = pd.DataFrame(columns=['Date'],data=pd.date_range(start_date, today))
->>>>>>> origin/master:wx_scraper.py
     try:
         data = pd.read_csv(folder+'data/'+sid+'_data.csv',index_col=False)
         data_dates = pd.DataFrame(columns=['Date'],data=pd.to_datetime(data.Time).dt.date.unique())
@@ -551,36 +457,21 @@ def main(start_date,sid):
 
     # data pull loop
     for date in fetch_dates.Date:
-<<<<<<< HEAD:wx_scraper_new.py
-
-=======
->>>>>>> origin/master:wx_scraper.py
         year = date.year
         month = date.month
         day = date.day
         year_str = str(year)
-<<<<<<< HEAD:wx_scraper_new.py
-
-=======
->>>>>>> origin/master:wx_scraper.py
         if month < 10:
             month_str = '0'+str(month)
         else:
             month_str = str(month)
-<<<<<<< HEAD:wx_scraper_new.py
-
-=======
->>>>>>> origin/master:wx_scraper.py
         if day < 10:
             day_str = '0'+str(day)
         else:
             day_str = str(day)
-<<<<<<< HEAD:wx_scraper_new.py
-
         url = 'http://www.wunderground.com/weatherstation/WXDailyHistory.asp?ID='+sid+'&day='+str(day)+'&month='+str(month)+'&year='+str(year)+'&graphspan=day&format=1'
         file = folder+'data/'+sid+'_'+year_str+'_'+month_str+'_'+day_str+'_fetch.csv'
-        soup = bs4.BeautifulSoup(urllib.request.urlopen(url)).text
-        
+        soup = bs4.BeautifulSoup(urllib.request.urlopen(url)).text        
         if os.path.exists(file) == True:
             print(year_str+'-'+month_str+'-'+day_str+': exists')
             pass
@@ -593,19 +484,6 @@ def main(start_date,sid):
             else:
                 print(year_str+'-'+month_str+'-'+day_str+': empty')
                 continue
-=======
-        url = 'http://www.wunderground.com/weatherstation/WXDailyHistory.asp?ID='+sid+'&day='+str(day)+'&month='+str(month)+'&year='+str(year)+'&graphspan=day&format=1'
-        file = folder+'data/'+sid+'_'+year_str+'_'+month_str+'_'+day_str+'_fetch.csv'
-        soup = bs4.BeautifulSoup(urllib.request.urlopen(url)).text
-        if soup.count('\n') > 1:
-            text_file = open(file, 'w')
-            text_file.write(soup)
-            text_file.close()
-            print(year_str+'-'+month_str+'-'+day_str+': fetched')
-        else:
-            print(year_str+'-'+month_str+'-'+day_str+': empty')
-            continue
->>>>>>> origin/master:wx_scraper.py
 
     # compile to main dataframe
     try:
@@ -617,21 +495,10 @@ def main(start_date,sid):
         for csv1 in glob.glob(folder+'data/'+sid+'*_fetch.csv'):
             data = data.append(pd.read_csv(csv1,index_col=False))
             os.remove(csv1)
-<<<<<<< HEAD:wx_scraper_new.py
-
     data.drop_duplicates(subset=['Time']).to_csv(folder+'data/'+sid+'_data.csv',index=False)
-
     df = data.copy(deep=True)
     del data
-
     print('data files loaded')
-
-=======
-    data.to_csv(folder+'data/'+sid+'_data.csv',index_col=False)
-    df = data
-    del data
-    print('data files loaded')
->>>>>>> origin/master:wx_scraper.py
     df['Time'] = pd.to_datetime(df.Time)
     df['DateUTC'] = pd.to_datetime(df.DateUTC)
     df.index = df.Time
@@ -648,13 +515,7 @@ def main(start_date,sid):
     treat(df,'WindSpeedGustMPH',-.01,pd.np.nan,'WindspeedGust')
     treat(df,'WindSpeedMPH',-.01,pd.np.nan,'Windspeed')
     treat(df,'dailyrainin',-.01,pd.np.nan,'PrecipDaily')
-<<<<<<< HEAD:wx_scraper_new.py
-
     df.loc[df['Windspeed'] == 0, 'WindDir'] = pd.np.nan
-
-=======
-    df.loc[df['Windspeed'] == 0, 'WindDir'] = pd.np.nan
->>>>>>> origin/master:wx_scraper.py
     print('data treated')
 
     # calculations
@@ -672,10 +533,6 @@ def main(start_date,sid):
     df['dTdt'] = df['dT'] / df['dt']
     df['dPdt'] = df['dP'] / df['dt']
     df.drop(['dt','dT','dP','SoftwareType'], axis=1, inplace=True)
-<<<<<<< HEAD:wx_scraper_new.py
-
-=======
->>>>>>> origin/master:wx_scraper.py
     print('calculations completed')
 
     # archive
@@ -686,39 +543,20 @@ def main(start_date,sid):
     else:
         print('data archive not selected')
 
-<<<<<<< HEAD:wx_scraper_new.py
-    # create limited dataframes
-=======
     # create limited dataframes and summaries
->>>>>>> origin/master:wx_scraper.py
     df_rawl_tdy = rawlimit_date(df,today)
     df_rawl_wek = rawlimit_date(df,lim_wek)
     df_rawl_mon = rawlimit_date(df,lim_mon)
     df_rawl_3mo = rawlimit_date(df,lim_3mo)
-<<<<<<< HEAD:wx_scraper_new.py
-    df_rawl_all = rawlimit_date(df,start)
-
-    df_rawl_day,df_rawl_nit = rawlimit_daynite(df)
-    df_rawl_win,df_rawl_spr,df_rawl_smr,df_rawl_fal = rawlimit_season(df)
-
-    print('timeframes created')
-
-=======
     df_rawl_all = rawlimit_date(df,start_date)
     df_rawl_day,df_rawl_nit = rawlimit_daynite(df)
     df_rawl_win,df_rawl_spr,df_rawl_smr,df_rawl_fal = rawlimit_season(df)
     print('timeframes created')
->>>>>>> origin/master:wx_scraper.py
     df_summ_tdy = summarize(df,today,str(summ_tdy)+'min')
     df_summ_wek = summarize(df,lim_wek,str(summ_wek)+'min')
     df_summ_mon = summarize(df,lim_mon,str(summ_mon)+'min')
     df_summ_3mo = summarize(df,lim_3mo,str(summ_3mo)+'min')
-<<<<<<< HEAD:wx_scraper_new.py
-    df_summ_all = summarize(df,start,str(summ_all)+'min')
-
-=======
     df_summ_all = summarize(df,start_date,str(summ_all)+'min')
->>>>>>> origin/master:wx_scraper.py
     print('summaries created')
 
     # create x-axis date labels
@@ -740,33 +578,16 @@ def main(start_date,sid):
 
     # create combo plots
     try:
-<<<<<<< HEAD:wx_scraper_new.py
-        combo(df_summ_tdy,'today',1,latest,city,state,lat,long,elev)
-        combo(df_summ_wek,'week',1,latest,city,state,lat,long,elev)
-        combo(df_summ_mon,'month',1,latest,city,state,lat,long,elev)
-        #combo(df_summ_3mo,'3mo',1,latest,city,state,lat,long,elev)
-        combo(df_summ_all,'all',1,latest,city,state,lat,long,elev)
-=======
         combo(df_summ_tdy,'day',1,latest,city,state,lat,long,elev,label_tdy,maj_tdy,min_tdy)
         combo(df_summ_wek,'week',1,latest,city,state,lat,long,elev,label_wek,maj_wek,min_wek)
         combo(df_summ_mon,'month',1,latest,city,state,lat,long,elev,label_mon,maj_mon,min_mon)
         #combo(df_summ_3mo,'3mo',1,latest,city,state,lat,long,elev,label_3mo,maj_3mo,min_3mo)
         combo(df_summ_all,'all',1,latest,city,state,lat,long,elev,label_all,maj_all,min_all)
->>>>>>> origin/master:wx_scraper.py
     except:
         pass
 
     # create windroses
     try:
-<<<<<<< HEAD:wx_scraper_new.py
-        wr(df_rawl_tdy,p_int,'today',latest,city,state,lat,long,elev)
-        wr(df_rawl_wek,p_int,'week',latest,city,state,lat,long,elev)
-        wr(df_rawl_mon,p_int,'month',latest,city,state,lat,long,elev)
-        wr(df_rawl_3mo,p_int,'3mo',latest,city,state,lat,long,elev)
-        wr(df_rawl_all,p_int,'all',latest,city,state,lat,long,elev)
-        wr(df_rawl_day,p_int,'day',latest,city,state,lat,long,elev)
-        wr(df_rawl_nit,p_int,'night',latest,city,state,lat,long,elev)
-=======
         wind_rose(df_rawl_tdy,p_int,'day',latest,city,state,lat,long,elev)
         wind_rose(df_rawl_wek,p_int,'week',latest,city,state,lat,long,elev)
         wind_rose(df_rawl_mon,p_int,'month',latest,city,state,lat,long,elev)
@@ -774,94 +595,50 @@ def main(start_date,sid):
         wind_rose(df_rawl_all,p_int,'all',latest,city,state,lat,long,elev)
         wind_rose(df_rawl_day,p_int,'day',latest,city,state,lat,long,elev)
         wind_rose(df_rawl_nit,p_int,'night',latest,city,state,lat,long,elev)
->>>>>>> origin/master:wx_scraper.py
     except:
         pass
 
     # create wind plots
     try:
-<<<<<<< HEAD:wx_scraper_new.py
-        wd(df_summ_tdy,p_int,'today',4,latest,city,state,lat,long,elev)
-        wd(df_summ_wek,p_int,'week',4,latest,city,state,lat,long,elev)
-        wd(df_summ_mon,p_int,'month',4,latest,city,state,lat,long,elev)
-        wd(df_summ_3mo,p_int,'3mo',4,latest,city,state,lat,long,elev)
-        wd(df_summ_all,p_int,'all',4,latest,city,state,lat,long,elev)
-=======
         wind_date(df_summ_tdy,p_int,'day',4,latest,city,state,lat,long,elev,label_tdy,maj_tdy,min_tdy)
         wind_date(df_summ_wek,p_int,'week',4,latest,city,state,lat,long,elev,label_wek,maj_wek,min_wek)
         wind_date(df_summ_mon,p_int,'month',4,latest,city,state,lat,long,elev,label_mon,maj_mon,min_mon)
         wind_date(df_summ_3mo,p_int,'3mo',4,latest,city,state,lat,long,elev,label_3mo,maj_3mo,min_3mo)
         wind_date(df_summ_all,p_int,'all',4,latest,city,state,lat,long,elev,label_all,maj_all,min_all)
->>>>>>> origin/master:wx_scraper.py
     except:
         pass
 
     # create plots
     try:
-<<<<<<< HEAD:wx_scraper_new.py
-        dTdts(df_summ_tdy,'today',75,latest,city,state,lat,long,elev)
-        dTdts(df_summ_wek,'week',75,latest,city,state,lat,long,elev)
-        dTdts(df_summ_mon,'month',75,latest,city,state,lat,long,elev)
-        #dTdts(df_summ_3mo,'3mo',75,latest,city,state,lat,long,elev)
-        dTdts(df_summ_all,'all',75,latest,city,state,lat,long,elev)
-=======
         dTdt_solar_temp(df_summ_tdy,'day',75,latest,city,state,lat,long,elev)
         dTdt_solar_temp(df_summ_wek,'week',75,latest,city,state,lat,long,elev)
         dTdt_solar_temp(df_summ_mon,'month',75,latest,city,state,lat,long,elev)
         #dTdt_solar_temp(df_summ_3mo,'3mo',75,latest,city,state,lat,long,elev)
         dTdt_solar_temp(df_summ_all,'all',75,latest,city,state,lat,long,elev)
->>>>>>> origin/master:wx_scraper.py
     except:
         pass
 
     # create plots
     try:
-<<<<<<< HEAD:wx_scraper_new.py
-        tdhs(df_summ_tdy,'today',75,latest,city,state,lat,long,elev)
-        #tdhs(df_summ_wek,'week',75,latest,city,state,lat,long,elev)
-        #tdhs(df_summ_mon,'month',75,latest,city,state,lat,long,elev)
-        #tdhs(df_summ_3mo,'3mo',75,latest,city,state,lat,long,elev)
-        tdhs(df_summ_all,'all',75,latest,city,state,lat,long,elev)
-=======
         temp_dew_hum(df_summ_tdy,'day',75,latest,city,state,lat,long,elev)
         #temp_dew_hum(df_summ_wek,'week',75,latest,city,state,lat,long,elev)
         #temp_dew_hum(df_summ_mon,'month',75,latest,city,state,lat,long,elev)
         #temp_dew_hum(df_summ_3mo,'3mo',75,latest,city,state,lat,long,elev)
         temp_dew_hum(df_summ_all,'all',75,latest,city,state,lat,long,elev)
->>>>>>> origin/master:wx_scraper.py
     except:
         pass
 
     # create plots
     try:
-<<<<<<< HEAD:wx_scraper_new.py
-        dTdtd(df_summ_tdy,'today',75,latest,city,state,lat,long,elev)
-        dTdtd(df_summ_wek,'week',75,latest,city,state,lat,long,elev)
-        #dTdtd(df_summ_mon,'month',75,latest,city,state,lat,long,elev)
-        #dTdtd(df_summ_3mo,'3mo',75,latest,city,state,lat,long,elev)
-        #dTdtd(df_summ_all,'all',75,latest,city,state,lat,long,elev)
-=======
         dTdt_date(df_summ_tdy,'day',75,latest,city,state,lat,long,elev,label_tdy,maj_tdy,min_tdy)
         dTdt_date(df_summ_wek,'week',75,latest,city,state,lat,long,elev,label_wek,maj_wek,min_wek)
         #dTdt_date(df_summ_mon,'month',75,latest,city,state,lat,long,elev)
         #dTdt_date(df_summ_3mo,'3mo',75,latest,city,state,lat,long,elev)
         #dTdt_date(df_summ_all,'all',75,latest,city,state,lat,long,elev)
->>>>>>> origin/master:wx_scraper.py
     except:
         pass
-
     print('plots completed')
 
-<<<<<<< HEAD:wx_scraper_new.py
-# run main loop
-while 1<2:
-    for sid in sid_list:
-        try:
-        	main(start_date,sid)
-        except:
-        	print(sid+' failed')
-    time.sleep(60*15)
-=======
 # main loop
 while 1<2:
     for sid in sid_list:
@@ -870,4 +647,3 @@ while 1<2:
         except:
             print(sid+' failed')
     time.sleep(60*sleep_time)
->>>>>>> origin/master:wx_scraper.py
