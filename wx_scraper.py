@@ -20,22 +20,8 @@ from sys import platform as _platform
 from matplotlib.dates import DateFormatter, MonthLocator, DayLocator, HourLocator
 
 # input data
-start_date = '2015-01-01'
-sid_list = ['KCABAKER38','KCAINYOK7','KCASANTA706','KTXDALLA233','MAU562']
-mac_folder = '/Users/areed145/Dropbox/GitHub/wx_scraper/'
-win_folder = 'C:/Users/bvjs/Python/python-3.4.3.amd64/bvjs/wx_scraper/'
-p_int = 16
-width = 1/24/60*5
-height = 90
-summ_tdy = 15
-summ_wek = 30
-summ_mon = 120
-summ_3mo = 360
-summ_all = 1440
-save_archive = False
-
-start_date = '2015-02-26' # date to start pulling data
-sid_list = ['KCABAKER38','KCABAKER8'] # list of stations to pull
+start_date = '2015-01-01' # date to start pulling data
+sid_list = ['KCABAKER38','KCAINYOK7','KCASANTA706','KTXDALLA233','MAU562'] # list of stations to pull
 mac_folder = '/Users/areed145/Dropbox/GitHub/wx_scraper/' # folder if on Mac
 win_folder = 'C:/Users/bvjs/Python/python-3.4.3.amd64/bvjs/wx_scraper/' # folder if on PC
 p_int = 16 # number of segments for wind rose plots
@@ -141,7 +127,7 @@ def wind_rose(df,p_int,name,latest,city,state,lat,long,elev):
     gb_wind05 = wind05.groupby(['WindDir'])['Windspeed'].count().reset_index().rename(columns={'Windspeed': 'wind05'})
     gb_wind10 = wind10.groupby(['WindDir'])['Windspeed'].count().reset_index().rename(columns={'Windspeed': 'wind10'})
     df_deg = pd.DataFrame(data = np.linspace(0, 360, p_int, endpoint=False), columns = ['WindDir'])
-	df_wr = df_deg.merge(gb_wind00, on=['WindDir'], how='left')\
+    df_wr = df_deg.merge(gb_wind00, on=['WindDir'], how='left')\
     .merge(gb_wind01, on=['WindDir'], how='left')\
     .merge(gb_wind02, on=['WindDir'], how='left')\
     .merge(gb_wind05, on=['WindDir'], how='left')\
@@ -180,7 +166,7 @@ def wind_rose(df,p_int,name,latest,city,state,lat,long,elev):
                          horizontalalignment='left',
                          transform=ax.transAxes)
     fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax.transAxes)
-    fig.savefig(folder+'plots/'+sid+'_wr_'+name+'.'+plt.rcParams['savefig.format'])
+    fig.savefig(folder+'plots/'+sid+'/'+sid+'_wr_'+name+'.'+plt.rcParams['savefig.format'])
 
 def wind_date(df,p_int,name,size,latest,city,state,lat,long,elev,label,major,minor):
     width = 1/24/60*int(df.index.freqstr[:-1])
@@ -234,10 +220,10 @@ def wind_date(df,p_int,name,size,latest,city,state,lat,long,elev,label,major,min
     ax1.xaxis.set_minor_locator(minor)
     ax1.grid(b=True, which='major', color='k',linestyle='-')
     fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax1.transAxes)
-    fig.savefig(folder+'plots/'+sid+'_wd_'+name+'.'+plt.rcParams['savefig.format'])
+    fig.savefig(folder+'plots/'+sid+'/'+sid+'_wd_'+name+'.'+plt.rcParams['savefig.format'])
 
 def tdhd(df,name,lw,latest,city,state,lat,long,elev):
-	plt.close("all")
+    plt.close("all")
     fig = plt.figure()
     fig.set_size_inches(7.5, 5)
     plt.title(sid+' - '+city+', '+state+': '+str(lat)+', '+str(long)+', '+str(elev)+'ft\nTemp, Dewpoint, Humidity - '+name)
@@ -257,7 +243,7 @@ def tdhd(df,name,lw,latest,city,state,lat,long,elev):
     ax2.set_ylabel('Humidity (%)')
     ax1.grid(b=True, which='both', color='k',linestyle='-')
     fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax1.transAxes)
-    fig.savefig(folder+'plots/'+sid+'_tdhd_'+name+'.'+plt.rcParams['savefig.format'])
+    fig.savefig(folder+'plots/'+sid+'/'+sid+'_tdhd_'+name+'.'+plt.rcParams['savefig.format'])
 
 def pppd(df,name,lw,latest,city,state,lat,long,elev):
     plt.close("all")
@@ -278,7 +264,7 @@ def pppd(df,name,lw,latest,city,state,lat,long,elev):
     ax2.set_ylabel('Precipitation (in)')
     ax1.grid(b=True, which='both', color='k',linestyle='-')
     fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax1.transAxes)
-    fig.savefig(folder+'plots/'+sid+'_pppd_'+name+'.'+plt.rcParams['savefig.format'])
+    fig.savefig(folder+'plots/'+sid+'/'+sid+'_pppd_'+name+'.'+plt.rcParams['savefig.format'])
 
 def dTdt_solar_temp(df,name,size,latest,city,state,lat,long,elev):
     plt.close("all")
@@ -295,7 +281,7 @@ def dTdt_solar_temp(df,name,size,latest,city,state,lat,long,elev):
     cbar = plt.colorbar(axcb)
     cbar.set_label('Temp (degF)')
     fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax.transAxes)
-    fig.savefig(folder+'plots/'+sid+'_dTdts_'+name+'.'+plt.rcParams['savefig.format'])
+    fig.savefig(folder+'plots/'+sid+'/'+sid+'_dTdts_'+name+'.'+plt.rcParams['savefig.format'])
 
 def dTdt_date(df,name,size,latest,city,state,lat,long,elev,label,major,minor):
     plt.close("all")
@@ -317,7 +303,7 @@ def dTdt_date(df,name,size,latest,city,state,lat,long,elev,label,major,minor):
     cbar = plt.colorbar(axcb)
     cbar.set_label('dT/dt (degF/hr)')
     fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax.transAxes)
-    fig.savefig(folder+'plots/'+sid+'_dTdtd_'+name+'.'+plt.rcParams['savefig.format'])
+    fig.savefig(folder+'plots/'+sid+'/'+sid+'_dTdtd_'+name+'.'+plt.rcParams['savefig.format'])
 
 def temp_dew_hum(df,name,size,latest,city,state,lat,long,elev):
     plt.close("all")
@@ -334,7 +320,7 @@ def temp_dew_hum(df,name,size,latest,city,state,lat,long,elev):
     cbar = plt.colorbar(axcb)
     cbar.set_label('Humidity (%)')
     fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax.transAxes)
-    fig.savefig(folder+'plots/'+sid+'_tdhs_'+name+'.'+plt.rcParams['savefig.format'])
+    fig.savefig(folder+'plots/'+sid+'/'+sid+'_tdhs_'+name+'.'+plt.rcParams['savefig.format'])
 
 def combo(df,name,lw,latest,city,state,lat,long,elev,label,major,minor):
     plt.close("all")
@@ -410,10 +396,10 @@ def combo(df,name,lw,latest,city,state,lat,long,elev,label,major,minor):
     ax5.grid(b=True, which='major', color='k',linestyle='-')
     ax5.set_xlabel('Date')
     fig.text(0.98,0.02,latest,fontsize=7,verticalalignment='bottom',horizontalalignment='right',transform=ax5.transAxes)
-    fig.savefig(folder+'plots/'+sid+'_combo_'+name+'.'+plt.rcParams['savefig.format'])
+    fig.savefig(folder+'plots/'+sid+'/'+sid+'_combo_'+name+'.'+plt.rcParams['savefig.format'])
 
 def main(start_date,sid):
-	# get station data
+    # get station data
     url_sd = 'http://api.wunderground.com/weatherstation/WXCurrentObXML.asp?ID='+sid
     soup_sd = bs4.BeautifulSoup(urllib.request.urlopen(url_sd))
     #full = soup_sd.find('full').getText()
@@ -424,7 +410,7 @@ def main(start_date,sid):
     long = float(soup_sd.find('longitude').getText())
     elev = int(soup_sd.find('elevation').getText()[:-3])
     latest = soup_sd.find('observation_time').getText()
-
+    
     # initialize the data pull
     start = dt.datetime.strptime(start_date, "%Y-%m-%d").date()
     today = dt.datetime.today().date()
@@ -471,7 +457,8 @@ def main(start_date,sid):
             day_str = str(day)
         url = 'http://www.wunderground.com/weatherstation/WXDailyHistory.asp?ID='+sid+'&day='+str(day)+'&month='+str(month)+'&year='+str(year)+'&graphspan=day&format=1'
         file = folder+'data/'+sid+'_'+year_str+'_'+month_str+'_'+day_str+'_fetch.csv'
-        soup = bs4.BeautifulSoup(urllib.request.urlopen(url)).text        
+        directory = folder+'plots/'+sid
+        soup = bs4.BeautifulSoup(urllib.request.urlopen(url)).text
         if os.path.exists(file) == True:
             print(year_str+'-'+month_str+'-'+day_str+': exists')
             pass
@@ -484,6 +471,9 @@ def main(start_date,sid):
             else:
                 print(year_str+'-'+month_str+'-'+day_str+': empty')
                 continue
+    #check directory
+    if not os.path.exists(directory):
+        os.makedirs(directory)
 
     # compile to main dataframe
     try:
