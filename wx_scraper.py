@@ -21,7 +21,7 @@ from matplotlib.dates import DateFormatter, MonthLocator, DayLocator, HourLocato
 
 # input data
 start_date = '2015-01-01' # date to start pulling data
-sid_list = ['KCABAKER38','KCASANTA278','KCODENVE86','KCAINYOK7','KTXDALLA233','MAU562'] # list of stations to pull
+sid_list = ['KCABAKER38','KCASANTA278','KCODENVE86','KCAINYOK7','KTXDALLA233','MAU562','KCABAKER8','KDCWASHI122','KFLKEYWE22','KWASEATT398','KNMSANTA66'] # list of stations to pull
 mac_folder = '/Users/areed145/Dropbox/GitHub/wx_scraper/' # folder if on Mac
 win_folder = 'C:/Users/bvjs/Python/python-3.4.3.amd64/bvjs/wx_scraper/' # folder if on PC
 p_int = 16 # number of segments for wind rose plots
