@@ -5,10 +5,12 @@ Created on Thu Oct 15 20:20:13 2015
 @author: areed145
 """
 import urllib
-import glob
 import time
 import os
 import gc
+import re
+import fnmatch
+from io import StringIO
 import datetime as dt
 from cmath import rect, phase
 from math import radians, degrees
@@ -20,10 +22,10 @@ import matplotlib.pyplot as plt
 from matplotlib.dates import DateFormatter, MonthLocator, DayLocator, HourLocator
 from dateutil.relativedelta import relativedelta
 import bs4
-import dropbox
+from dropbox.client import DropboxClient
 
 # input data
-START_DATE = '2015-02-23' # date to start pulling data
+START_DATE = '2016-02-26' # date to start pulling data
 SID_LIST = ['KCABAKER38', 'KCASANTA278', 'KCODENVE86', 'KCAINYOK7',
             'KTXDALLA233', 'MAU562', 'KCABAKER8', 'KDCWASHI122',
             'KFLKEYWE22', 'KWASEATT398', 'KNMSANTA66'] # list of stations to pull
@@ -40,7 +42,8 @@ SUMM_MON = 2 # hours to aggregate in "month" summary
 SUMM_3MO = 6 # hours ro aggregate in "3month" summary
 SUMM_ALL = 24 # hours to aggreagate in "all" summary
 SAVE_ARCHIVE = False # save archive?
-SLEEP_TIME = 10 # minutes to sleep before pulling stations again
+SLEEP_TIME = 2 # minutes to sleep before pulling stations again
+DROPBOX = True
 
 # plot variables
 MARKER_SIZE = 75
@@ -48,7 +51,6 @@ LINE_WIDTH = 1
 
 # dropbox
 ACCESS_TOKEN = '9-dK9AG5fnkAAAAAAAAySl9sqq6pdHP84Fx5jhGn8adduEqGcmI_xvUS33fwhVO5'
-DBX = dropbox.Dropbox(ACCESS_TOKEN)
 
 # convert hour summary intervals to minutes
 SUMM_MON = SUMM_MON * 60
@@ -57,7 +59,7 @@ SUMM_ALL = SUMM_ALL * 60
 
 # update plot defaults
 plt.rcParams.update({'font.size': 9})
-plt.rcParams.update({'savefig.dpi': 300})
+plt.rcParams.update({'savefig.dpi': 200})
 plt.rcParams.update({'savefig.facecolor': 'azure'})
 plt.rcParams.update({'savefig.edgecolor': 'k'})
 plt.rcParams.update({'savefig.format': 'png'})
@@ -82,6 +84,29 @@ if not os.path.exists(ARCHIVE_DIR):
     os.makedirs(ARCHIVE_DIR)
 
 # define functions
+def dropbox_upload(timef):
+    """uploads plots to dropbox"""
+    client = DropboxClient(ACCESS_TOKEN)
+
+    for root, dirs, files in os.walk(plots_dir):
+        
+        includes = ['*_'+timef+'.*']
+        includes = r'|'.join([fnmatch.translate(x) for x in includes])
+        files = [f for f in files if re.match(includes, f)]
+    
+        for filename in files:
+            # construct the full local path
+            local_path = os.path.join(root, filename)    
+            # construct the full Dropbox path
+            relative_path = os.path.relpath(local_path, plots_dir)
+            dropbox_path = os.path.join('/plots/'+SID, relative_path)    
+            # upload the file
+            try:
+                with open(local_path, 'rb') as f:
+                    client.put_file(dropbox_path, f, overwrite=True)
+            except:
+                pass
+
 def mean_angle(deg):
     """returns average angle for wind direction (since in radians)"""
     deg = deg[~deg.isnull()]
@@ -92,6 +117,15 @@ def mean_angle(deg):
             deg_avg = 360 + deg_avg
         return deg_avg
     return np.mean(deg)
+    
+def summary_table(data, timef):
+    """summarizes data into table form"""
+    day_min = pd.DataFrame(data=data.min(), columns=['Min'])
+    day_mean = pd.DataFrame(data=data.mean(), columns=['Avg'])
+    day_max = pd.DataFrame(data=data.max(), columns=['Max'])
+    data = pd.merge(day_min, pd.merge(day_mean, day_max, left_index=True, right_index=True),
+                    left_index=True, right_index=True)
+    return data
 
 def summarize(data, begin, r_int):
     """summarizes data into specified time windows and stats by time interval"""
@@ -117,6 +151,21 @@ def summarize(data, begin, r_int):
                'WindDirection_min'], axis=1, inplace=True)
     data = data.reindex_axis(sorted(data.columns), axis=1)
     data['Precip_cum'] = data.PrecipHourly_avg.cumsum() * r_int / 60
+    for col in ['Dewpoint_avg', 'Dewpoint_max', 'Dewpoint_min',
+                'PrecipDaily_avg', 'PrecipDaily_max',
+                'PrecipHourly_avg', 'PrecipHourly_max',
+                'Humidity_avg','Humidity_max','Humidity_min',
+                'CloudBase_avg','CloudBase_max','CloudBase_min',
+                'SolarRadiation_avg', 'SolarRadiation_max', 'SolarRadiation_min',
+                'Temp_avg', 'Temp_max', 'Temp_min',
+                'WindDir',
+                'WindspeedGust_avg', 'WindspeedGust_max', 'WindspeedGust_min',
+                'Windspeed_avg', 'Windspeed_max', 'Windspeed_min',
+                'Precip_cum']:    
+        data[col] = np.round(data[col], 1)        
+    for col in ['Pressure_avg', 'Pressure_max', 'Pressure_min']:
+        data[col] = np.round(data[col], 2)
+        
     return data
 
 def rawlimit_date(data, begin):
@@ -158,6 +207,56 @@ def treat(data, col1, valmin, val, col2):
         data.rename(columns={col1:col2}, inplace=True)
     except ValueError:
         pass
+    
+def export(data, ftype, name, timef):
+    """collects and exports all the files meeting search criteria to dropbox"""
+    if ftype == 'raw':
+        data['Date'] = data.Time.map(lambda x: pd.to_datetime(x).date())
+        data['TimeH'] = data.Time.map(lambda x: pd.to_datetime(x).time())
+        data.columns = ['Cloud Base (ft)', 'Date UTC', 'Dewpoint (F)', 'Humidity (%)',
+                        'Precip Daily (in)', 'Precip Hourly (in)', 'Pressure (inHg)',
+                        'Solar Radiation (W/m^2)', 'Temp (F)', 'Date / Time', 'Wind Deg (deg)',
+                        'Wind Dir', 'Wind Speed (mph)', 'Wind Speed Gust (mph)',
+                        'Date', 'Time']
+        data = data[['Date / Time','Date','Time', 'Date UTC', 'Temp (F)', 'Dewpoint (F)',
+                     'Humidity (%)', 'Pressure (inHg)', 'Wind Dir', 'Wind Deg (deg)',
+                     'Wind Speed (mph)', 'Wind Speed Gust (mph)', 'Solar Radiation (W/m^2)',
+                     'Cloud Base (ft)', 'Precip Daily (in)', 'Precip Hourly (in)']]
+        data = data.sort(['Date / Time'], ascending=False)
+    elif ftype == 'summary':
+        data = data.reset_index()
+        data['Date'] = data.Time.map(lambda x: pd.to_datetime(x).date())
+        data['TimeH'] = data.Time.map(lambda x: pd.to_datetime(x).time())
+        data.columns = ['Date / Time',
+                        'Avg Cloud Base','Max Cloud Base','Min Cloud Base',
+                        'Avg Dewpoint','Max Dewpoint','Min Dewpoint',
+                        'Avg Humidity','Max Humidity','Min Humidity',
+                        'Avg Precip Daily','Max Precip Daily',
+                        'Avg Precip Hourly','Max Precip Hourly',
+                        'Avg Pressure','Max Pressure','Min Pressure',
+                        'Avg Solar Radiation','Max Solar Radiation','Min Solar Radiation',
+                        'Avg Temp','Max Temp','Min Temp',
+                        'Wind Deg',
+                        'Avg Wind Speed Gust','Max Wind Speed Gust','Min Wind Speed Gust',
+                        'Avg Wind Speed','Max Wind Speed','Min Wind Speed',
+                        'Cumulative Precip','Date','Time']
+        data = data[['Date / Time','Date','Time',
+                    'Avg Temp','Max Temp','Min Temp',
+                    'Avg Dewpoint','Max Dewpoint','Min Dewpoint',
+                    'Avg Humidity','Max Humidity','Min Humidity',
+                    'Avg Pressure','Max Pressure','Min Pressure',
+                    'Wind Deg',
+                    'Avg Wind Speed Gust','Max Wind Speed Gust','Min Wind Speed Gust',
+                    'Avg Wind Speed','Max Wind Speed','Min Wind Speed',
+                    'Avg Solar Radiation','Max Solar Radiation','Min Solar Radiation',
+                    'Avg Cloud Base','Max Cloud Base','Min Cloud Base',
+                    'Avg Precip Daily','Max Precip Daily',
+                    'Avg Precip Hourly','Max Precip Hourly',
+                    'Cumulative Precip']]
+        data = data.sort(['Date / Time'], ascending=False)
+
+
+    data.to_csv(plots_dir+SID+'_'+name+'_'+timef+'.csv')            
 
 def wind_rose(data, name):
     """creates wind rose diagrams"""
@@ -270,7 +369,7 @@ def wind_rose(data, name):
              transform=ax1.transAxes)
     fig.savefig(plots_dir+SID+'_wr_'+name+'.'+plt.rcParams['savefig.format'])
     plt.close(fig)
-    
+
 def wind_date(data, name, label, major, minor):
     """creates wind date plots"""
     width = 1/24/60*int(data.index.freqstr[:-1])
@@ -428,7 +527,7 @@ def dtdt_solar_temp(data, name):
              transform=ax1.transAxes)
     fig.savefig(plots_dir+SID+'_dTdts_'+name+'.'+plt.rcParams['savefig.format'])
     plt.close(fig)
-    
+
 def dtdt_date(data, name, label, major, minor):
     """creates dTdt date plots"""
     plt.close("all")
@@ -468,7 +567,7 @@ def dtdt_date(data, name, label, major, minor):
              transform=ax1.transAxes)
     fig.savefig(plots_dir+SID+'_dTdtd_'+name+'.'+plt.rcParams['savefig.format'])
     plt.close(fig)
-    
+
 def temp_dew_hum(data, name):
     """creates temp dewpt humidity plots"""
     plt.close("all")
@@ -503,7 +602,7 @@ def temp_dew_hum(data, name):
              transform=ax1.transAxes)
     fig.savefig(plots_dir+SID+'_tdhs_'+name+'.'+plt.rcParams['savefig.format'])
     plt.close(fig)
-    
+
 def dpdt_wind_temp(data, name):
     """creates dPdt wind temp plots"""
     plt.close("all")
@@ -538,7 +637,7 @@ def dpdt_wind_temp(data, name):
              transform=ax1.transAxes)
     fig.savefig(plots_dir+SID+'_dPdts_'+name+'.'+plt.rcParams['savefig.format'])
     plt.close(fig)
-    
+
 def combo(data, name, label, major, minor):
     """creates combo plots"""
     plt.close("all")
@@ -722,276 +821,381 @@ def combo(data, name, label, major, minor):
              transform=ax5.transAxes)
     fig.savefig(plots_dir+SID+'_combo_'+name+'.'+plt.rcParams['savefig.format'])
     plt.close(fig)
-    
-def main():
-    """runs the main loop"""
-    # initialize the data pull
-    start = dt.datetime.strptime(START_DATE, "%Y-%m-%d").date()
-    today = dt.datetime.today().date()
-    now = dt.datetime.today()
-    lim_day = now+relativedelta(days=-1)
-    lim_mon = today+relativedelta(months=-1)
-    lim_3mo = today+relativedelta(months=-3)
-    lim_wek = today+relativedelta(days=-7)
-    lim_yer = today+relativedelta(years=-1)
-    fetch_range = pd.DataFrame(columns=['Date'],
-                               data=pd.date_range(START_DATE, today))
-    try:
-        data = pd.read_csv(DATA_DIR+SID+'_data.csv',
-                           index_col=False)
-        data_dates = pd.DataFrame(columns=['Date'],
-                                  data=pd.to_datetime(data.Time).dt.date.unique())
-        recent_range = pd.DataFrame(columns=['Date'],
-                                    data=pd.date_range(lim_wek, today).date)
-        fetch_dates = fetch_range[~fetch_range.Date.isin(data_dates.Date)]\
-            .append(recent_range).drop_duplicates()
-    except ValueError:
-        fetch_dates = fetch_range
-
-    # print header data
-    print('-- WX_SCRAPER --')
-    print('(c) Adam Reeder')
-    print('station id: '+SID)
-    print('neighborhood: '+neigh)
-    print('city: '+city)
-    print('state: '+state)
-    print('lat: '+str(lat))
-    print('long: '+str(long))
-    print('elevation: '+str(elev))
-    print('start date: '+str(start))
-    print('history length: '+str(len(fetch_range))+' days')
-    print('fetch length: '+str(len(fetch_dates))+' days')
-    print(latest)
-
-    # data pull loop
-    for date in fetch_dates.Date:
-        year = date.year
-        month = date.month
-        day = date.day
-        year_str = str(year)
-        if month < 10:
-            month_str = '0'+str(month)
-        else:
-            month_str = str(month)
-        if day < 10:
-            day_str = '0'+str(day)
-        else:
-            day_str = str(day)
-        url = 'http://www.wunderground.com/weatherstation/WXDailyHistory.asp?ID='\
-            +SID+'&day='+str(day)+'&month='+str(month)+'&year='+str(year)+\
-            '&graphspan=day&format=1'
-        file = DATA_DIR+SID+'_'+year_str+'_'+month_str+'_'+day_str+'_fetch.csv'
-        soup = bs4.BeautifulSoup(urllib.request.urlopen(url)).text
-        if os.path.exists(file):
-            print(year_str+'-'+month_str+'-'+day_str+': exists')
-        else:
-            if soup.count('\n') > 1:
-                text_file = open(file, 'w')
-                text_file.write(soup)
-                text_file.close()
-                print(year_str+'-'+month_str+'-'+day_str+': fetched')
-            else:
-                print(year_str+'-'+month_str+'-'+day_str+': empty')
-                continue
-
-    # compile to main dataframe
-    try:
-        for csv1 in glob.glob(DATA_DIR+SID+'*_fetch.csv'):
-            data = data.append(pd.read_csv(csv1, index_col=False))
-            os.remove(csv1)
-    except ValueError:
-        data = pd.DataFrame()
-        for csv1 in glob.glob(DATA_DIR+SID+'*_fetch.csv'):
-            data = data.append(pd.read_csv(csv1, index_col=False))
-            os.remove(csv1)
-    data.drop_duplicates(subset=['Time']).to_csv(DATA_DIR+SID+'_data.csv', index=False)
-    print('data files loaded')
-    data['Time'] = pd.to_datetime(data.Time)
-    data['DateUTC'] = pd.to_datetime(data.DateUTC)
-    data.index = data.Time
-    data = data.sort(['DateUTC'], ascending=True)
-
-    # data treatment
-    treat(data, 'DewpointF', -50, pd.np.nan, 'Dewpoint')
-    treat(data, 'HourlyPrecipIn', 0, 0, 'PrecipHourly')
-    treat(data, 'Humidity', 0, pd.np.nan, 'Humidity')
-    treat(data, 'PressureIn', 0, pd.np.nan, 'Pressure')
-    treat(data, 'SolarRadiationWatts/m^2', -100, pd.np.nan, 'SolarRadiation')
-    treat(data, 'TemperatureF', -100, pd.np.nan, 'Temp')
-    treat(data, 'WindDirectionDegrees', -.01, pd.np.nan, 'WindDir')
-    treat(data, 'WindSpeedGustMPH', -.01, pd.np.nan, 'WindspeedGust')
-    treat(data, 'WindSpeedMPH', -.01, pd.np.nan, 'Windspeed')
-    treat(data, 'dailyrainin', -.01, pd.np.nan, 'PrecipDaily')
-    data.loc[data['Windspeed'] == 0, 'WindDir'] = pd.np.nan
-    print('data treated')
-
-    # calculations
-    data['SID'] = SID
-    data['Lat'] = lat
-    data['Long'] = long
-    data['Elev'] = elev
-    data['City'] = city
-    data['State'] = state
-    data['CloudBase'] = (((data['Temp'] - data['Dewpoint']) / 4.4) * 1000) + elev
-    data['dT'] = data.Temp - data.Temp.shift(1)
-    data['dP'] = data.Pressure - data.Pressure.shift(1)
-    data['dt'] = data.Time - data.Time.shift(1)
-    data['dt'] = data.dt.astype('timedelta64[s]')/(60*60)
-    data['dTdt'] = data['dT'] / data['dt']
-    data['dPdt'] = data['dP'] / data['dt']
-    data.drop(['dt',
-               'dT',
-               'dP',
-               'SoftwareType',
-               'City',
-               'Clouds',
-               'Conditions',
-               'SID',
-               'Lat',
-               'Long',
-               'Elev',
-               'State'], axis=1, inplace=True)
-    print('calculations completed')
-
-    # archive
-    if SAVE_ARCHIVE:
-        data.to_csv(ARCHIVE_DIR+SID+'_archive.csv')
-        print('data archived')
-    else:
-        print('data archive not selected')
-
-    # create limited dataframes and summaries
-    data_rawl_day = rawlimit_date(data, lim_day)
-    wind_rose(data_rawl_day, '1day')
-    dtdt_solar_temp(data_rawl_day, '1day')
-    temp_dew_hum(data_rawl_day, '1day')
-    dpdt_wind_temp(data_rawl_day, '1day')
-    del data_rawl_day
-    
-    data_rawl_wek = rawlimit_date(data, lim_wek)
-    wind_rose(data_rawl_wek, '1week')
-    dtdt_solar_temp(data_rawl_wek, '1week')
-    #temp_dew_hum(data_rawl_wek, '1week')
-    dpdt_wind_temp(data_rawl_wek, '1week')
-    del data_rawl_wek
-    
-    data_rawl_mon = rawlimit_date(data, lim_mon)
-    wind_rose(data_rawl_mon, '1month')
-    dtdt_solar_temp(data_rawl_mon, '1month')
-    #temp_dew_hum(data_rawl_mon, '1month')
-    dpdt_wind_temp(data_rawl_mon, '1month')
-    del data_rawl_mon
-    
-    data_rawl_3mo = rawlimit_date(data, lim_3mo)
-    wind_rose(data_rawl_3mo, '3month')
-    #dtdt_solar_temp(data_rawl_3mo, '3month')
-    #temp_dew_hum(data_rawl_3mo, '3month')
-    #dpdt_wind_temp(data_rawl_3mo, '3month')
-    del data_rawl_3mo
-    
-    data_rawl_yer = rawlimit_date(data, lim_yer)
-    wind_rose(data_rawl_yer, '1year')
-    dtdt_solar_temp(data_rawl_yer, '1year')
-    temp_dew_hum(data_rawl_yer, '1year')
-    dpdt_wind_temp(data_rawl_yer, '1year')
-    del data_rawl_yer
-    
-    data_rawl_all = rawlimit_date(data, START_DATE)
-    wind_rose(data_rawl_all, 'all')
-    #dtdt_solar_temp(data_rawl_all, 'all')    
-    #temp_dew_hum(data_rawl_all, 'all')
-    #dpdt_wind_temp(data_rawl_all, 'all')
-    del data_rawl_all
-    
-    data_rawl_dys, data_rawl_nts = rawlimit_daynite(data)
-    wind_rose(data_rawl_dys, 'days')
-    del data_rawl_dys
-    wind_rose(data_rawl_nts, 'nights')
-    del data_rawl_nts
-    
-    #data_rawl_win, data_rawl_spr, data_rawl_smr, data_rawl_fal = rawlimit_season(data)
-         
-    print('timeframe plots created')
-    
-    # create x-axis date labels
-    label_day = DateFormatter("%H:%M")
-    label_wek = DateFormatter("%m/%d")
-    label_mon = DateFormatter("%m/%d")
-    label_3mo = DateFormatter("%m/%y")
-    label_all = DateFormatter("%m/%y")
-    maj_day = HourLocator(interval=3)
-    maj_wek = DayLocator()
-    maj_mon = DayLocator(interval=7)
-    maj_3mo = MonthLocator()
-    maj_all = MonthLocator()
-    min_day = HourLocator()
-    min_wek = HourLocator()
-    min_mon = DayLocator()
-    min_3mo = DayLocator()
-    min_all = DayLocator()
-
-    data_summ_day = summarize(data, lim_day, SUMM_DAY)
-    combo(data_summ_day, '1day', label_day, maj_day, min_day)
-    wind_date(data_summ_day, '1day', label_day, maj_day, min_day)
-    dtdt_date(data_summ_day, '1day', label_day, maj_day, min_day)
-    del data_summ_day
-
-    data_summ_wek = summarize(data, lim_wek, SUMM_WEK)
-    combo(data_summ_wek, '1week', label_wek, maj_wek, min_wek)
-    wind_date(data_summ_wek, '1week', label_wek, maj_wek, min_wek)
-    dtdt_date(data_summ_wek, '1week', label_wek, maj_wek, min_wek)
-    del data_summ_wek
-    
-    data_summ_mon = summarize(data, lim_mon, SUMM_MON)
-    combo(data_summ_mon, '1month', label_mon, maj_mon, min_mon)
-    wind_date(data_summ_mon, '1month', label_mon, maj_mon, min_mon)
-    #dtdt_date(data_summ_mon, '1month')
-    del data_summ_mon
-    
-    data_summ_3mo = summarize(data, lim_3mo, SUMM_3MO)
-    #combo(data_summ_3mo, '3month', label_3mo, maj_3mo, min_3mo)
-    wind_date(data_summ_3mo, '3month', label_3mo, maj_3mo, min_3mo)
-    #dtdt_date(data_summ_3mo, '3month')
-    del data_summ_3mo
-    
-    data_summ_yer = summarize(data, lim_yer, SUMM_ALL)
-    combo(data_summ_yer, '1year', label_all, maj_all, min_all)
-    wind_date(data_summ_yer, '1year', label_all, maj_all, min_all)
-    #dtdt_date(data_summ_yer, '1year')
-    del data_summ_yer
-    
-    #data_summ_all = summarize(data, START_DATE, SUMM_ALL)
-    #combo(data_summ_all, 'all', label_all, maj_all, min_all)
-    #wind_date(data_summ_all, 'all', label_all, maj_all, min_all)
-    #dtdt_date(data_summ_all, 'all')
-    #del data_summ_all
-    
-    del data
-    print('summary plots created')
 
 # main loop
 SID = None
+begin = dt.datetime.today()
+
 while 1 < 2:
-    for SID in SID_LIST:
-        plots_dir = FOLDER+'plots/'+SID+'/'
-        if not os.path.exists(plots_dir):
-            os.makedirs(plots_dir)
+    clock_15min = begin+relativedelta(minutes=15)
+    clock_1hr = begin+relativedelta(minutes=60)
+    clock_6hrs = begin+relativedelta(hours=6)
+                    
+    try:
+        for SID in SID_LIST:
+            plots_dir = FOLDER+'plots/'+SID+'/'
+            if not os.path.exists(plots_dir):
+                os.makedirs(plots_dir)
 
-        # get station data
-        url_sd = 'http://api.wunderground.com/weatherstation/WXCurrentObXML.asp?ID='+SID
-        soup_sd = bs4.BeautifulSoup(urllib.request.urlopen(url_sd))
-        #full = soup_sd.find('full').getText()
-        neigh = soup_sd.find('neighborhood').getText()
-        city = soup_sd.find('city').getText()
-        state = soup_sd.find('state').getText()
-        lat = float(soup_sd.find('latitude').getText())
-        long = float(soup_sd.find('longitude').getText())
-        elev = int(soup_sd.find('elevation').getText()[:-3])
-        latest = soup_sd.find('observation_time').getText()
+            # get station data
+            url_sd = 'http://api.wunderground.com/weatherstation/WXCurrentObXML.asp?ID='+SID
+            soup_sd = bs4.BeautifulSoup(urllib.request.urlopen(url_sd))
+            #full = soup_sd.find('full').getText()
+            neigh = soup_sd.find('neighborhood').getText()
+            city = soup_sd.find('city').getText()
+            state = soup_sd.find('state').getText()
+            lat = float(soup_sd.find('latitude').getText())
+            long = float(soup_sd.find('longitude').getText())
+            elev = int(soup_sd.find('elevation').getText()[:-3])
+            latest = soup_sd.find('observation_time').getText()
 
-        try:
-            main()
+            start = dt.datetime.strptime(START_DATE, "%Y-%m-%d").date()
+            today = dt.datetime.today().date()
+            lim_day = begin+relativedelta(days=-1)
+            lim_fch = today+relativedelta(days=-2)
+            lim_wek = today+relativedelta(days=-7)
+            lim_mon = today+relativedelta(months=-1)
+            lim_3mo = today+relativedelta(months=-3)
+            lim_yer = today+relativedelta(years=-1)
+            
+            fetch_range = pd.DataFrame(columns=['Date'],
+                                       data=pd.date_range(START_DATE, today).date)
+            try:
+                data = pd.read_pickle(DATA_DIR+SID+'_data.pk1')
+                data_dates = pd.DataFrame(columns = ['Date'],
+                                          data=data.Time.map(lambda x: pd.to_datetime(x).date()).unique())
+                recent_range = pd.DataFrame(columns=['Date'],
+                                            data=pd.date_range(lim_fch, today).date)
+    
+                fetch_dates = fetch_range[~fetch_range.Date.isin(data_dates.Date)]\
+                                .append(recent_range).drop_duplicates()
+            except Exception:
+                data = pd.DataFrame()
+                fetch_dates = fetch_range
+
+            #print header data
+            print('-- WX_SCRAPER --')
+            print('(c) Adam Reeder')
+            print('station id: '+SID)
+            print('neighborhood: '+neigh)
+            print('city: '+city)
+            print('state: '+state)
+            print('lat: '+str(lat))
+            print('long: '+str(long))
+            print('elevation: '+str(elev))
+            print('start date: '+str(start))
+            print('history length: '+str(len(fetch_range))+' days')
+            print('fetch length: '+str(len(fetch_dates))+' days')
+            print(latest)
+
+            # data pull loop
+            for date in fetch_dates.Date:
+                year = date.year
+                month = date.month
+                day = date.day
+                year_str = str(year)
+                if month < 10:
+                    month_str = '0'+str(month)
+                else:
+                    month_str = str(month)
+                if day < 10:
+                    day_str = '0'+str(day)
+                else:
+                    day_str = str(day)
+                url = 'http://www.wunderground.com/weatherstation/WXDailyHistory.asp?ID='\
+                    +SID+'&day='+str(day)+'&month='+str(month)+'&year='+str(year)+\
+                    '&graphspan=day&format=1'
+                soup = bs4.BeautifulSoup(urllib.request.urlopen(url)).text
+                if soup.count('\n') > 1:
+                    data = data.append(pd.read_csv(StringIO(soup), index_col=False))
+                    print(year_str+'-'+month_str+'-'+day_str+': fetched')
+                else:
+                    print(year_str+'-'+month_str+'-'+day_str+': empty')
+                    continue
+            data = data.drop_duplicates(subset=['Time'])
+            data.to_pickle(DATA_DIR+SID+'_data.pk1')
+                    
+            print('data files loaded')
+
+            # compile to main dataframe
+            data['Time'] = pd.to_datetime(data.Time)
+            data['DateUTC'] = pd.to_datetime(data.DateUTC)
+            data.index = data.Time
+            data = data.sort(['DateUTC'], ascending=True)
+
+            # data treatment
+            treat(data, 'DewpointF', -50, pd.np.nan, 'Dewpoint')
+            treat(data, 'HourlyPrecipIn', 0, 0, 'PrecipHourly')
+            treat(data, 'Humidity', 0, pd.np.nan, 'Humidity')
+            treat(data, 'PressureIn', 0, pd.np.nan, 'Pressure')
+            treat(data, 'SolarRadiationWatts/m^2', -100, pd.np.nan, 'SolarRadiation')
+            treat(data, 'TemperatureF', -100, pd.np.nan, 'Temp')
+            treat(data, 'WindDirectionDegrees', -.01, pd.np.nan, 'WindDir')
+            treat(data, 'WindSpeedGustMPH', -.01, pd.np.nan, 'WindspeedGust')
+            treat(data, 'WindSpeedMPH', -.01, pd.np.nan, 'Windspeed')
+            treat(data, 'dailyrainin', -.01, pd.np.nan, 'PrecipDaily')
+            data.loc[data['Windspeed'] == 0, 'WindDir'] = pd.np.nan
+            print('data treated')
+
+            # calculations
+            data['SID'] = SID
+            data['Lat'] = lat
+            data['Long'] = long
+            data['Elev'] = elev
+            data['City'] = city
+            data['State'] = state
+            data['CloudBase'] = np.round((((data['Temp'] - data['Dewpoint']) / 4.4) * 1000) + elev, 0)
+            #data['dT'] = data.Temp - data.Temp.shift(1)
+            #data['dP'] = data.Pressure - data.Pressure.shift(1)
+            #data['dt'] = data.Time - data.Time.shift(1)
+            #data['dt'] = data.dt.astype('timedelta64[s]')/(60*60)
+            #data['dTdt'] = data['dT'] / data['dt']
+            #data['dPdt'] = data['dP'] / data['dt']
+            data.drop(['SoftwareType',
+                       'City',
+                       'Clouds',
+                       'Conditions',
+                       'SID',
+                       'Lat',
+                       'Long',
+                       'Elev',
+                       'State'], axis=1, inplace=True)
+            print('calculations completed')
+
+            # archive
+            if SAVE_ARCHIVE:
+                data.to_csv(ARCHIVE_DIR+SID+'_archive.csv')
+                print('data archived')
+            else:
+                print('data archive not selected')
+
+            # create x-axis date labels
+            label_day = DateFormatter("%H:%M")
+            label_wek = DateFormatter("%m/%d")
+            label_mon = DateFormatter("%m/%d")
+            label_3mo = DateFormatter("%m/%y")
+            label_all = DateFormatter("%m/%y")
+            maj_day = HourLocator(interval=3)
+            maj_wek = DayLocator()
+            maj_mon = DayLocator(interval=7)
+            maj_3mo = MonthLocator()
+            maj_all = MonthLocator()
+            min_day = HourLocator()
+            min_wek = HourLocator()
+            min_mon = DayLocator()
+            min_3mo = DayLocator()
+            min_all = DayLocator()
+            
+            print('run began: '+str(begin))
+            print('time now: '+str(dt.datetime.today()))
+            print('time in 15min: '+str(clock_15min))
+            print('time in 1hr: '+str(clock_1hr))
+            print('time in 6hrs: '+str(clock_6hrs))      
+
+            # create limited dataframes and summaries
+            data_rawl_day = rawlimit_date(data, lim_day)
+            data_rawl_tdy = rawlimit_date(data, today)
+            wind_rose(data_rawl_day, '1day')
+            #dtdt_solar_temp(data_rawl_day, '1day')
+            temp_dew_hum(data_rawl_day, '1day')
+            #dpdt_wind_temp(data_rawl_day, '1day')
+            tdy_table = summary_table(data_rawl_tdy, 'Day').T
+            day_table = summary_table(data_rawl_day, 'Day').T
+            wek_table = summary_table(rawlimit_date(data, lim_wek), 'Week').T
+            mon_table = summary_table(rawlimit_date(data, lim_mon), 'Month').T
+            yer_table = summary_table(rawlimit_date(data, lim_yer), 'Year').T
+            
+            cols = ['Cloud Base (ft)', 'Dewpoint (F)', 'Humidity (%)',
+                                'Precip Daily (in)', 'Precip Hourly (in)', 'Pressure (inHg)',
+                                'Solar Radiation (W/m^2)', 'Temp (F)', 'Wind Deg (deg)',
+                                'Wind Speed (mph)', 'Wind Speed Gust (mph)']
+            
+            tdy_table.columns = cols
+            day_table.columns = cols
+            wek_table.columns = cols
+            mon_table.columns = cols
+            yer_table.columns = cols
+            
+            tdy_table.apply(lambda x: x.astype(float).round(2)).to_csv(plots_dir+SID+'_tdy_table_1day.csv')
+            day_table.apply(lambda x: x.astype(float).round(2)).to_csv(plots_dir+SID+'_day_table_1day.csv')
+            wek_table.apply(lambda x: x.astype(float).round(2)).to_csv(plots_dir+SID+'_wek_table_1day.csv')
+            mon_table.apply(lambda x: x.astype(float).round(2)).to_csv(plots_dir+SID+'_mon_table_1day.csv')
+            yer_table.apply(lambda x: x.astype(float).round(2)).to_csv(plots_dir+SID+'_yer_table_1day.csv')
+
+            print('summary table created')            
+            
+            export(data_rawl_day, 'raw', 'data_rawl_day', '1day')
+            export(data_rawl_tdy, 'raw', 'data_rawl_tdy', '1day')
+            del data_rawl_day, data_rawl_tdy
+            
+            data_summ_day = summarize(data, lim_day, SUMM_DAY)
+            data_summ_tdy = summarize(data, today, SUMM_DAY)
+            combo(data_summ_day, '1day', label_day, maj_day, min_day)
+            wind_date(data_summ_day, '1day', label_day, maj_day, min_day)
+            #dtdt_date(data_summ_day, '1day', label_day, maj_day, min_day)
+            export(data_summ_day, 'summary', 'data_summ_day', '1day')
+            export(data_summ_tdy, 'summary', 'data_summ_tdy', '1day')
+            del data_summ_day, data_summ_tdy
+            
+            print('daily plots and summary table created')
+            
+            if DROPBOX == True:
+                dropbox_upload('1day')
+                    
+                print('daily plots and summary table uploaded to dropbox')
+            
+            if dt.datetime.today() >= clock_15min:
+                
+                data_rawl_wek = rawlimit_date(data, lim_wek)
+                wind_rose(data_rawl_wek, '1week')
+                #dtdt_solar_temp(data_rawl_wek, '1week')
+                #temp_dew_hum(data_rawl_wek, '1week')
+                #dpdt_wind_temp(data_rawl_wek, '1week')
+                #export(data_rawl_wek, 'raw', 'data_rawl_wek', '1week')
+                del data_rawl_wek
+                
+                data_summ_wek = summarize(data, lim_wek, SUMM_WEK)
+                combo(data_summ_wek, '1week', label_wek, maj_wek, min_wek)
+                wind_date(data_summ_wek, '1week', label_wek, maj_wek, min_wek)
+                #dtdt_date(data_summ_wek, '1week', label_wek, maj_wek, min_wek)
+                export(data_summ_wek, 'summary', 'data_summ_wek', '1week')
+                del data_summ_wek
+                
+                print('weekly plots created')
+                
+                if DROPBOX == True:
+                    dropbox_upload('1week')
+                    
+                    print('weekly plots uploaded to dropbox')
+                
+            else:
+                print('weekly plots skipped')
+                
+            if dt.datetime.today() >= clock_1hr:
+    
+                data_rawl_mon = rawlimit_date(data, lim_mon)
+                wind_rose(data_rawl_mon, '1month')
+                #dtdt_solar_temp(data_rawl_mon, '1month')
+                #temp_dew_hum(data_rawl_mon, '1month')
+                #dpdt_wind_temp(data_rawl_mon, '1month')
+                #export(data_rawl_mon, 'raw', 'data_rawl_mon', '1month')
+                del data_rawl_mon
+                
+                data_summ_mon = summarize(data, lim_mon, SUMM_MON)
+                combo(data_summ_mon, '1month', label_mon, maj_mon, min_mon)
+                wind_date(data_summ_mon, '1month', label_mon, maj_mon, min_mon)
+                #dtdt_date(data_summ_mon, '1month')
+                export(data_summ_mon, 'summary', 'data_summ_mon', '1month')
+                del data_summ_mon
+                
+                print('monthly plots created')
+                
+                if DROPBOX == True:
+                    dropbox_upload('1month')
+                    
+                    print('monthly plots uploaded to dropbox')
+                
+            else:
+                print('monthly plots skipped')
+                
+            if dt.datetime.today() >= clock_6hrs:
+    
+                data_rawl_3mo = rawlimit_date(data, lim_3mo)
+                wind_rose(data_rawl_3mo, '3month')
+                #dtdt_solar_temp(data_rawl_3mo, '3month')
+                #temp_dew_hum(data_rawl_3mo, '3month')
+                #dpdt_wind_temp(data_rawl_3mo, '3month')
+                #export(data_rawl_3mo, 'raw', 'data_rawl_3mo', '3month')
+                del data_rawl_3mo
+                
+                data_summ_3mo = summarize(data, lim_3mo, SUMM_3MO)
+                #combo(data_summ_3mo, '3month', label_3mo, maj_3mo, min_3mo)
+                wind_date(data_summ_3mo, '3month', label_3mo, maj_3mo, min_3mo)
+                #dtdt_date(data_summ_3mo, '3month')
+                export(data_summ_3mo, 'summary', 'data_summ_3mo', '3month')
+                del data_summ_3mo
+                
+                print('3-month plots created')
+            
+                if DROPBOX == True:
+                    dropbox_upload('3month')
+                    
+                    print('3-month plots uploaded to dropbox')
+                
+            else:
+                print('3-month plots skipped')
+                
+            if dt.datetime.today() >= clock_6hrs:
+    
+                data_rawl_yer = rawlimit_date(data, lim_yer)
+                wind_rose(data_rawl_yer, '1year')
+                #dtdt_solar_temp(data_rawl_yer, '1year')
+                temp_dew_hum(data_rawl_yer, '1year')
+                #dpdt_wind_temp(data_rawl_yer, '1year')
+                #export(data_rawl_yer, 'raw', 'data_rawl_yer', '1year')
+                del data_rawl_yer
+                
+                data_summ_yer = summarize(data, lim_yer, SUMM_ALL)
+                combo(data_summ_yer, '1year', label_all, maj_all, min_all)
+                wind_date(data_summ_yer, '1year', label_all, maj_all, min_all)
+                #dtdt_date(data_summ_yer, '1year')
+                export(data_summ_yer, 'summary', 'data_summ_yer', '1year')
+                del data_summ_yer
+                
+                print('yearly plots created')
+                
+                if DROPBOX == True:
+                    dropbox_upload('1year')
+                    
+                    print('yearly plots uploaded to dropbox')
+                
+            else:
+                print('yearly plots skipped')
+                
+            if dt.datetime.today() >= clock_6hrs:
+    
+                data_rawl_all = rawlimit_date(data, START_DATE)
+                wind_rose(data_rawl_all, 'all')
+                #dtdt_solar_temp(data_rawl_all, 'all')
+                #temp_dew_hum(data_rawl_all, 'all')
+                #dpdt_wind_temp(data_rawl_all, 'all')
+                del data_rawl_all
+                
+                #data_summ_all = summarize(data, START_DATE, SUMM_ALL)
+                #combo(data_summ_all, 'all', label_all, maj_all, min_all)
+                #wind_date(data_summ_all, 'all', label_all, maj_all, min_all)
+                #dtdt_date(data_summ_all, 'all')
+                #del data_summ_all
+                
+                data_rawl_dys, data_rawl_nts = rawlimit_daynite(data)
+                wind_rose(data_rawl_dys, 'days')
+                del data_rawl_dys
+                wind_rose(data_rawl_nts, 'nights')
+                del data_rawl_nts
+                
+                #data_rawl_win, data_rawl_spr, data_rawl_smr, data_rawl_fal = rawlimit_season(data)
+                
+                print('all-time plots created')
+                
+                if DROPBOX == True:
+                    dropbox_upload('all')
+                    dropbox_upload('days')
+                    dropbox_upload('nights')
+                    
+                    print('all-time plots uploaded to dropbox')
+                
+                begin = dt.datetime.today()
+                
+                print('clock reset')
+                
+            else:
+                print('all-time plots skipped')
+
+            del data
             gc.collect
-        except ValueError:
-            print(SID+' failed')
+            
+    except ValueError:
+        print(SID+' failed')
+
+    print('sleeping for '+str(SLEEP_TIME)+' minute(s)')
     time.sleep(60*SLEEP_TIME)

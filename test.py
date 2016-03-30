@@ -6,17 +6,23 @@ Created on Wed Mar  9 21:17:49 2016
 """
 
 # Include the Dropbox SDK
+import fnmatch
 import os
+import re
 from dropbox.client import DropboxClient
 
 access_token = '9-dK9AG5fnkAAAAAAAAySl9sqq6pdHP84Fx5jhGn8adduEqGcmI_xvUS33fwhVO5'
-local_directory = '/Users/areed145/Dropbox/GitHub/wx_scraper/plots/KCABAKER38'
+local_directory = '/Users/areed145/Dropbox/GitHub/wx_scraper/plots/KCABAKER38/'
 dropbox_destination = '/plots/KCABAKER38'
 
 client = DropboxClient(access_token)
 
 # enumerate local files recursively
 for root, dirs, files in os.walk(local_directory):
+    
+    includes = ['*_1week.png']
+    includes = r'|'.join([fnmatch.translate(x) for x in includes])
+    files = [f for f in files if re.match(includes, f)]
 
     for filename in files:
 
