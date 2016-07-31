@@ -213,46 +213,46 @@ def export(data, ftype, name, timef):
     if ftype == 'raw':
         data['Date'] = data.Time.map(lambda x: pd.to_datetime(x).date())
         data['TimeH'] = data.Time.map(lambda x: pd.to_datetime(x).time())
-        data.columns = ['Cloud Base (ft)', 'Date UTC', 'Dewpoint (F)', 'Humidity (%)',
-                        'Precip Daily (in)', 'Precip Hourly (in)', 'Pressure (inHg)',
-                        'Solar Radiation (W/m^2)', 'Temp (F)', 'Date / Time', 'Wind Deg (deg)',
-                        'Wind Dir', 'Wind Speed (mph)', 'Wind Speed Gust (mph)',
+        data.columns = ['Cldbase (ft)', 'Date UTC', 'Dewpt (F)', 'Hum (%)',
+                        'Precip Dly (in)', 'Precip Hrly (in)', 'Pres (inHg)',
+                        'Solar Rad (W/m^2)', 'Temp (F)', 'Date / Time', 'Wind Deg (deg)',
+                        'Wind Dir', 'Wind Spd (mph)', 'Wind Spd Gust (mph)',
                         'Date', 'Time']
-        data = data[['Date / Time','Date','Time', 'Date UTC', 'Temp (F)', 'Dewpoint (F)',
-                     'Humidity (%)', 'Pressure (inHg)', 'Wind Dir', 'Wind Deg (deg)',
-                     'Wind Speed (mph)', 'Wind Speed Gust (mph)', 'Solar Radiation (W/m^2)',
-                     'Cloud Base (ft)', 'Precip Daily (in)', 'Precip Hourly (in)']]
+        data = data[['Date / Time','Date','Time', 'Date UTC', 'Temp (F)', 'Dewpt (F)',
+                     'Hum (%)', 'Pres (inHg)', 'Wind Dir', 'Wind Deg (deg)',
+                     'Wind Spd (mph)', 'Wind Spd Gust (mph)', 'Solar Rad (W/m^2)',
+                     'Cldbase (ft)', 'Precip Dly (in)', 'Precip Hrly (in)']]
         data = data.sort(['Date / Time'], ascending=False)
     elif ftype == 'summary':
         data = data.reset_index()
         data['Date'] = data.Time.map(lambda x: pd.to_datetime(x).date())
         data['TimeH'] = data.Time.map(lambda x: pd.to_datetime(x).time())
         data.columns = ['Date / Time',
-                        'Avg Cloud Base','Max Cloud Base','Min Cloud Base',
-                        'Avg Dewpoint','Max Dewpoint','Min Dewpoint',
-                        'Avg Humidity','Max Humidity','Min Humidity',
-                        'Avg Precip Daily','Max Precip Daily',
-                        'Avg Precip Hourly','Max Precip Hourly',
-                        'Avg Pressure','Max Pressure','Min Pressure',
-                        'Avg Solar Radiation','Max Solar Radiation','Min Solar Radiation',
+                        'Avg Cldbase','Max Cldbase','Min Cldbase',
+                        'Avg Dewpt','Max Dewpt','Min Dewpt',
+                        'Avg Hum','Max Hum','Min Hum',
+                        'Avg Precip Dly','Max Precip Dly',
+                        'Avg Precip Hrly','Max Precip Hrly',
+                        'Avg Pres','Max Pres','Min Pres',
+                        'Avg Solar Rad','Max Solar Rad','Min Solar Rad',
                         'Avg Temp','Max Temp','Min Temp',
                         'Wind Deg',
-                        'Avg Wind Speed Gust','Max Wind Speed Gust','Min Wind Speed Gust',
-                        'Avg Wind Speed','Max Wind Speed','Min Wind Speed',
-                        'Cumulative Precip','Date','Time']
+                        'Avg Wind Spd Gust','Max Wind Spd Gust','Min Wind Spd Gust',
+                        'Avg Wind Spd','Max Wind Spd','Min Wind Spd',
+                        'Cum Precip','Date','Time']
         data = data[['Date / Time','Date','Time',
                     'Avg Temp','Max Temp','Min Temp',
-                    'Avg Dewpoint','Max Dewpoint','Min Dewpoint',
-                    'Avg Humidity','Max Humidity','Min Humidity',
-                    'Avg Pressure','Max Pressure','Min Pressure',
+                    'Avg Dewpt','Max Dewpt','Min Dewpt',
+                    'Avg Hum','Max Hum','Min Hum',
+                    'Avg Pres','Max Pres','Min Pres',
                     'Wind Deg',
-                    'Avg Wind Speed Gust','Max Wind Speed Gust','Min Wind Speed Gust',
-                    'Avg Wind Speed','Max Wind Speed','Min Wind Speed',
-                    'Avg Solar Radiation','Max Solar Radiation','Min Solar Radiation',
-                    'Avg Cloud Base','Max Cloud Base','Min Cloud Base',
-                    'Avg Precip Daily','Max Precip Daily',
-                    'Avg Precip Hourly','Max Precip Hourly',
-                    'Cumulative Precip']]
+                    'Avg Wind Spd Gust','Max Wind Spd Gust','Min Wind Spd Gust',
+                    'Avg Wind Spd','Max Wind Spd','Min Wind Spd',
+                    'Avg Solar Rad','Max Solar Rad','Min Solar Rad',
+                    'Avg Cldbase','Max Cldbase','Min Cldbase',
+                    'Avg Precip Dly','Max Precip Dly',
+                    'Avg Precip Hrly','Max Precip Hrly',
+                    'Cum Precip']]
         data = data.sort(['Date / Time'], ascending=False)
 
 
@@ -1194,7 +1194,7 @@ while 1 < 2:
             del data
             gc.collect
             
-    except ValueError:
+    except Exception:
         print(SID+' failed')
 
     print('sleeping for '+str(SLEEP_TIME)+' minute(s)')
