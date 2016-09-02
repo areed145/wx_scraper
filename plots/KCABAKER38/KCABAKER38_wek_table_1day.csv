@@ -1,4 +1,4 @@
-,Cloud Base (ft),Dewpoint (F),Humidity (%),Precip Daily (in),Precip Hourly (in),Pressure (inHg),Solar Radiation (W/m^2),Temp (F),Wind Deg (deg),Wind Speed (mph),Wind Speed Gust (mph)
-Min,764.0,25.3,12.0,0.0,0.0,29.92,0.0,46.8,0.0,0.0,0.0
-Avg,4774.38,48.57,53.68,0.0,0.0,30.15,192.13,67.82,198.35,1.4,2.18
-Max,13536.0,60.4,94.0,0.0,0.0,30.32,750.66,87.4,359.0,14.5,19.9
+,Cldbs (ft),Dwpt (F),Hum (%),Prcp Dly (in),Prcp Hrly (in),Pres (inHg),Solr Rad (W/m^2),Temp (F),Wnd Deg (deg),Wnd Spd (mph),Wnd Spd Gst (mph)
+Min,2809.0,29.1,10.0,0.0,0.0,29.65,0.0,72.1,0.0,0.0,0.0
+Avg,9627.5,48.38,29.19,0.0,0.0,29.81,250.9,88.98,216.8,1.56,2.37
+Max,15786.0,64.4,69.0,0.0,0.0,29.95,680.19,105.8,359.0,13.4,17.5

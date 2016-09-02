@@ -154,8 +154,6 @@ def summarize(data, begin, r_int):
     for col in ['Dewpoint_avg', 'Dewpoint_max', 'Dewpoint_min',
                 'PrecipDaily_avg', 'PrecipDaily_max',
                 'PrecipHourly_avg', 'PrecipHourly_max',
-                'Humidity_avg','Humidity_max','Humidity_min',
-                'CloudBase_avg','CloudBase_max','CloudBase_min',
                 'SolarRadiation_avg', 'SolarRadiation_max', 'SolarRadiation_min',
                 'Temp_avg', 'Temp_max', 'Temp_min',
                 'WindDir',
@@ -164,7 +162,10 @@ def summarize(data, begin, r_int):
                 'Precip_cum']:    
         data[col] = np.round(data[col], 1)        
     for col in ['Pressure_avg', 'Pressure_max', 'Pressure_min']:
-        data[col] = np.round(data[col], 2)
+        data[col] = np.round(data[col], 2)        
+    for col in ['Humidity_avg','Humidity_max','Humidity_min',
+                'CloudBase_avg','CloudBase_max','CloudBase_min']:
+        data[col] = np.round(data[col], 0)    
         
     return data
 
@@ -212,47 +213,49 @@ def export(data, ftype, name, timef):
     """collects and exports all the files meeting search criteria to dropbox"""
     if ftype == 'raw':
         data['Date'] = data.Time.map(lambda x: pd.to_datetime(x).date())
-        data['TimeH'] = data.Time.map(lambda x: pd.to_datetime(x).time())
-        data.columns = ['Cldbase (ft)', 'Date UTC', 'Dewpt (F)', 'Hum (%)',
-                        'Precip Dly (in)', 'Precip Hrly (in)', 'Pres (inHg)',
-                        'Solar Rad (W/m^2)', 'Temp (F)', 'Date / Time', 'Wind Deg (deg)',
-                        'Wind Dir', 'Wind Spd (mph)', 'Wind Spd Gust (mph)',
+        data['TimeH'] = data.Time.map(lambda x: pd.to_datetime(x).time().strftime('%H:%M'))
+        data['Humidity'] = data['Humidity'].astype(int)
+        data['CloudBase'] = data['CloudBase'].astype(int)
+        data.columns = ['Cldbs (ft)', 'Date UTC', 'Dwpt (F)', 'Hum (%)',
+                        'Prcp Dly (in)', 'Prcp Hrly (in)', 'Pres (inHg)',
+                        'Solr Rad (W/m^2)', 'Temp (F)', 'Date / Time', 'Wnd Deg (deg)',
+                        'Wnd Dir', 'Wnd Spd (mph)', 'Wnd Spd Gst (mph)',
                         'Date', 'Time']
-        data = data[['Date / Time','Date','Time', 'Date UTC', 'Temp (F)', 'Dewpt (F)',
-                     'Hum (%)', 'Pres (inHg)', 'Wind Dir', 'Wind Deg (deg)',
-                     'Wind Spd (mph)', 'Wind Spd Gust (mph)', 'Solar Rad (W/m^2)',
-                     'Cldbase (ft)', 'Precip Dly (in)', 'Precip Hrly (in)']]
+        data = data[['Date / Time','Date','Time', 'Date UTC', 'Temp (F)', 'Dwpt (F)',
+                     'Hum (%)', 'Pres (inHg)', 'Wnd Dir', 'Wnd Deg (deg)',
+                     'Wnd Spd (mph)', 'Wnd Spd Gst (mph)', 'Solr Rad (W/m^2)',
+                     'Cldbs (ft)', 'Prcp Dly (in)', 'Prcp Hrly (in)']]
         data = data.sort(['Date / Time'], ascending=False)
     elif ftype == 'summary':
         data = data.reset_index()
         data['Date'] = data.Time.map(lambda x: pd.to_datetime(x).date())
-        data['TimeH'] = data.Time.map(lambda x: pd.to_datetime(x).time())
+        data['TimeH'] = data.Time.map(lambda x: pd.to_datetime(x).time().strftime('%H:%M'))
         data.columns = ['Date / Time',
-                        'Avg Cldbase','Max Cldbase','Min Cldbase',
-                        'Avg Dewpt','Max Dewpt','Min Dewpt',
+                        'Avg Cldbs','Max Cldbs','Min Cldbs',
+                        'Avg Dwpt','Max Dwpt','Min Dwpt',
                         'Avg Hum','Max Hum','Min Hum',
-                        'Avg Precip Dly','Max Precip Dly',
-                        'Avg Precip Hrly','Max Precip Hrly',
+                        'Avg Prcp Dly','Max Prcp Dly',
+                        'Avg Prcp Hrly','Max Prcp Hrly',
                         'Avg Pres','Max Pres','Min Pres',
-                        'Avg Solar Rad','Max Solar Rad','Min Solar Rad',
+                        'Avg Solr Rad','Max Solr Rad','Min Solr Rad',
                         'Avg Temp','Max Temp','Min Temp',
-                        'Wind Deg',
-                        'Avg Wind Spd Gust','Max Wind Spd Gust','Min Wind Spd Gust',
-                        'Avg Wind Spd','Max Wind Spd','Min Wind Spd',
-                        'Cum Precip','Date','Time']
+                        'Wnd Deg',
+                        'Avg Wnd Spd Gst','Max Wnd Spd Gst','Min Wnd Spd Gst',
+                        'Avg Wnd Spd','Max Wnd Spd','Min Wnd Spd',
+                        'Cum Prcp','Date','Time']
         data = data[['Date / Time','Date','Time',
                     'Avg Temp','Max Temp','Min Temp',
-                    'Avg Dewpt','Max Dewpt','Min Dewpt',
+                    'Avg Dwpt','Max Dwpt','Min Dwpt',
                     'Avg Hum','Max Hum','Min Hum',
                     'Avg Pres','Max Pres','Min Pres',
-                    'Wind Deg',
-                    'Avg Wind Spd Gust','Max Wind Spd Gust','Min Wind Spd Gust',
-                    'Avg Wind Spd','Max Wind Spd','Min Wind Spd',
-                    'Avg Solar Rad','Max Solar Rad','Min Solar Rad',
-                    'Avg Cldbase','Max Cldbase','Min Cldbase',
-                    'Avg Precip Dly','Max Precip Dly',
-                    'Avg Precip Hrly','Max Precip Hrly',
-                    'Cum Precip']]
+                    'Wnd Deg',
+                    'Avg Wnd Spd Gst','Max Wnd Spd Gst','Min Wnd Spd Gst',
+                    'Avg Wnd Spd','Max Wnd Spd','Min Wnd Spd',
+                    'Avg Solr Rad','Max Solr Rad','Min Solr Rad',
+                    'Avg Cldbs','Max Cldbs','Min Cldbs',
+                    'Avg Prcp Dly','Max Prcp Dly',
+                    'Avg Prcp Hrly','Max Prcp Hrly',
+                    'Cum Prcp']]
         data = data.sort(['Date / Time'], ascending=False)
 
 
@@ -1005,10 +1008,10 @@ while 1 < 2:
             mon_table = summary_table(rawlimit_date(data, lim_mon), 'Month').T
             yer_table = summary_table(rawlimit_date(data, lim_yer), 'Year').T
             
-            cols = ['Cloud Base (ft)', 'Dewpoint (F)', 'Humidity (%)',
-                                'Precip Daily (in)', 'Precip Hourly (in)', 'Pressure (inHg)',
-                                'Solar Radiation (W/m^2)', 'Temp (F)', 'Wind Deg (deg)',
-                                'Wind Speed (mph)', 'Wind Speed Gust (mph)']
+            cols = ['Cldbs (ft)', 'Dwpt (F)', 'Hum (%)',
+                                'Prcp Dly (in)', 'Prcp Hrly (in)', 'Pres (inHg)',
+                                'Solr Rad (W/m^2)', 'Temp (F)', 'Wnd Deg (deg)',
+                                'Wnd Spd (mph)', 'Wnd Spd Gst (mph)']
             
             tdy_table.columns = cols
             day_table.columns = cols
